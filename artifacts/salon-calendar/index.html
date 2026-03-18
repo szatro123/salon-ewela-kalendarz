@@ -1,16 +1,841 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <title>Salon Appointment Calendar</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Salon Appointment Calendar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --rose:       #b5536a;
+      --rose-light: #d4799a;
+      --rose-bg:    #fdf2f5;
+      --blush:      #f5dde5;
+      --blush-mid:  #ecdae0;
+      --cream:      #fdf8f6;
+      --warm-white: #fff9f7;
+      --text-dark:  #3a2030;
+      --text-mid:   #7a5060;
+      --text-light: #b08898;
+      --border:     #e8d0d9;
+      --shadow:     rgba(181, 83, 106, 0.12);
+      --radius:     14px;
+      --radius-sm:  8px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--cream);
+      color: var(--text-dark);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #fbecf0 0%, #f5e6ec 60%, #f0dce4 100%);
+      border-bottom: 1px solid var(--blush-mid);
+      padding: 18px 20px 16px;
+    }
+    .header-inner {
+      max-width: 680px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .salon-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.55rem;
+      font-weight: 600;
+      color: var(--rose);
+      line-height: 1.1;
+    }
+    .salon-sub {
+      font-size: 0.78rem;
+      color: var(--text-mid);
+      margin-top: 2px;
+    }
+    .header-stats {
+      display: flex;
+      gap: 12px;
+    }
+    .stat-box {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 14px;
+      text-align: center;
+      min-width: 80px;
+    }
+    .stat-label { font-size: 0.65rem; color: var(--text-light); text-transform: uppercase; letter-spacing: .05em; }
+    .stat-value { font-size: 1.1rem; font-weight: 600; color: var(--rose); }
+
+    /* ── Date nav ── */
+    .date-nav {
+      max-width: 680px;
+      margin: 16px auto 0;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .nav-btn {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-mid);
+      width: 40px; height: 40px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 1rem;
+      transition: border-color .15s, color .15s;
+    }
+    .nav-btn:hover { border-color: var(--rose-light); color: var(--rose); }
+    .date-display {
+      flex: 1;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0 14px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--text-dark);
+      position: relative;
+    }
+    .date-display svg { color: var(--rose); flex-shrink: 0; }
+    #date-picker-input {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%;
+    }
+    .today-btn {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-mid);
+      padding: 0 14px;
+      height: 40px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 500;
+      white-space: nowrap;
+      transition: border-color .15s, color .15s;
+    }
+    .today-btn:hover { border-color: var(--rose-light); color: var(--rose); }
+    .add-btn {
+      background: var(--rose);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 0 18px;
+      height: 40px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 600;
+      white-space: nowrap;
+      display: flex; align-items: center; gap: 6px;
+      transition: background .15s;
+    }
+    .add-btn:hover { background: #9e3f59; }
+
+    /* ── Main content ── */
+    main {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 16px 20px 80px;
+    }
+
+    /* ── Empty state ── */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-light);
+    }
+    .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+    .empty-state h3 { font-size: 1.05rem; color: var(--text-mid); margin-bottom: 6px; }
+    .empty-state p { font-size: 0.85rem; }
+
+    /* ── Appointment card ── */
+    .appointment-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      cursor: pointer;
+      transition: box-shadow .15s, border-color .15s;
+      position: relative;
+    }
+    .appointment-card:hover { box-shadow: 0 4px 16px var(--shadow); border-color: var(--rose-light); }
+    .time-col {
+      min-width: 52px;
+      text-align: center;
+    }
+    .appt-time { font-size: 0.95rem; font-weight: 600; color: var(--rose); line-height: 1.2; }
+    .appt-duration { font-size: 0.72rem; color: var(--text-light); margin-top: 2px; }
+    .time-line {
+      width: 2px;
+      background: var(--blush);
+      border-radius: 2px;
+      margin: 6px auto 0;
+      min-height: 24px;
+      flex-shrink: 0;
+    }
+    .card-body { flex: 1; min-width: 0; }
+    .client-name { font-size: 1rem; font-weight: 600; color: var(--text-dark); }
+    .service-row { font-size: 0.85rem; color: var(--text-mid); margin-top: 2px; }
+    .card-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+      flex-wrap: wrap;
+    }
+    .price-tag { font-size: 0.88rem; font-weight: 600; color: var(--text-dark); }
+    .phone-tag { font-size: 0.78rem; color: var(--text-light); }
+    .notes-tag { font-size: 0.78rem; color: var(--text-light); font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+
+    /* Status badges */
+    .badge {
+      display: inline-flex; align-items: center;
+      font-size: 0.7rem; font-weight: 600;
+      padding: 2px 8px; border-radius: 20px;
+      text-transform: uppercase; letter-spacing: .04em;
+    }
+    .badge-scheduled   { background: #e8f0fe; color: #3b5bdb; }
+    .badge-confirmed   { background: #d3f9d8; color: #2f7d38; }
+    .badge-completed   { background: #f1f3f5; color: #495057; }
+    .badge-cancelled   { background: #fff0f3; color: #c92a2a; }
+    .badge-no_show     { background: #fff3e0; color: #e65100; }
+
+    /* Card action buttons */
+    .card-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .icon-btn {
+      background: none; border: none; cursor: pointer;
+      width: 32px; height: 32px;
+      border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-light);
+      transition: background .12s, color .12s;
+      font-size: 1rem;
+    }
+    .icon-btn:hover { background: var(--blush); color: var(--text-dark); }
+    .icon-btn.delete:hover { background: #fff0f3; color: #c92a2a; }
+
+    /* ── Modal ── */
+    .modal-backdrop {
+      display: none;
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(58, 32, 48, 0.35);
+      backdrop-filter: blur(2px);
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: white;
+      border-radius: var(--radius) var(--radius) 0 0;
+      width: 100%;
+      max-width: 640px;
+      max-height: 92vh;
+      overflow-y: auto;
+      padding: 24px 20px 36px;
+      animation: slideUp .25s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(60px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .modal-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.25rem;
+      color: var(--text-dark);
+    }
+    .close-btn {
+      background: var(--blush); border: none;
+      width: 32px; height: 32px; border-radius: 50%;
+      font-size: 1rem; cursor: pointer; color: var(--text-mid);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .close-btn:hover { background: var(--blush-mid); }
+
+    /* Form */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group.full { grid-column: 1 / -1; }
+    label { font-size: 0.8rem; font-weight: 500; color: var(--text-mid); }
+    input, select, textarea {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 9px 12px;
+      font-size: 0.9rem;
+      font-family: 'Inter', sans-serif;
+      color: var(--text-dark);
+      background: var(--warm-white);
+      width: 100%;
+      outline: none;
+      transition: border-color .15s;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--rose-light); background: white; }
+    textarea { resize: vertical; min-height: 70px; }
+    .error-msg { font-size: 0.78rem; color: #c92a2a; margin-top: 2px; }
+
+    /* Form buttons */
+    .form-actions {
+      margin-top: 20px;
+      display: flex; gap: 10px; justify-content: flex-end;
+    }
+    .btn-cancel {
+      background: white; border: 1px solid var(--border);
+      color: var(--text-mid); border-radius: var(--radius-sm);
+      padding: 10px 20px; font-size: 0.88rem; cursor: pointer;
+      transition: border-color .15s;
+    }
+    .btn-cancel:hover { border-color: var(--rose-light); }
+    .btn-save {
+      background: var(--rose); color: white; border: none;
+      border-radius: var(--radius-sm);
+      padding: 10px 24px; font-size: 0.88rem; font-weight: 600;
+      cursor: pointer; transition: background .15s;
+    }
+    .btn-save:hover { background: #9e3f59; }
+
+    /* Delete confirm */
+    .delete-confirm {
+      display: none;
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(58, 32, 48, 0.4);
+      align-items: center; justify-content: center;
+    }
+    .delete-confirm.open { display: flex; }
+    .delete-box {
+      background: white;
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      max-width: 340px;
+      width: 90%;
+      text-align: center;
+      animation: popIn .2s ease;
+    }
+    @keyframes popIn {
+      from { transform: scale(.92); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+    .delete-box h3 { font-size: 1.05rem; margin-bottom: 8px; }
+    .delete-box p { font-size: 0.85rem; color: var(--text-mid); margin-bottom: 20px; }
+    .delete-actions { display: flex; gap: 10px; justify-content: center; }
+    .btn-delete {
+      background: #c92a2a; color: white; border: none;
+      border-radius: var(--radius-sm);
+      padding: 10px 20px; font-size: 0.88rem; font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: var(--text-dark); color: white;
+      padding: 10px 20px; border-radius: 20px;
+      font-size: 0.85rem; font-weight: 500;
+      opacity: 0; transition: opacity .2s;
+      z-index: 300; pointer-events: none;
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; }
+    .toast.error { background: #c92a2a; }
+
+    /* Responsive */
+    @media (max-width: 480px) {
+      .salon-title { font-size: 1.2rem; }
+      .form-grid { grid-template-columns: 1fr; }
+      .header-stats { gap: 8px; }
+      .stat-box { min-width: 68px; padding: 6px 10px; }
+      .stat-value { font-size: 0.95rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div>
+      <div class="salon-title">✦ Beauty Salon</div>
+      <div class="salon-sub">Appointment Calendar</div>
+    </div>
+    <div class="header-stats">
+      <div class="stat-box">
+        <div class="stat-label">Today's Revenue</div>
+        <div class="stat-value" id="stat-revenue">$0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Bookings</div>
+        <div class="stat-value" id="stat-count">0</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="date-nav">
+  <button class="nav-btn" id="prev-day" title="Previous day">&#8249;</button>
+  <div class="date-display">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+    <span id="date-label">Today</span>
+    <input type="date" id="date-picker-input" title="Pick a date" />
+  </div>
+  <button class="today-btn" id="go-today">Today</button>
+  <button class="nav-btn" id="next-day" title="Next day">&#8250;</button>
+  <button class="add-btn" id="open-add">
+    <span>+</span> New
+  </button>
+</div>
+
+<main id="appointments-list"></main>
+
+<!-- Appointment Modal -->
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-title">New Appointment</h2>
+      <button class="close-btn" id="modal-close" aria-label="Close">✕</button>
+    </div>
+    <form id="appt-form" novalidate>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="f-name">Client Name *</label>
+          <input type="text" id="f-name" placeholder="e.g. Sarah Johnson" autocomplete="off" />
+          <div class="error-msg" id="err-name"></div>
+        </div>
+        <div class="form-group">
+          <label for="f-phone">Phone *</label>
+          <input type="tel" id="f-phone" placeholder="e.g. 555-123-4567" />
+          <div class="error-msg" id="err-phone"></div>
+        </div>
+        <div class="form-group full">
+          <label for="f-service">Service *</label>
+          <select id="f-service">
+            <option value="">— Select a service —</option>
+            <option>Haircut</option>
+            <option>Color</option>
+            <option>Highlights</option>
+            <option>Balayage</option>
+            <option>Blowout</option>
+            <option>Trim</option>
+            <option>Treatment</option>
+            <option>Extensions</option>
+            <option>Nails</option>
+            <option>Facial</option>
+            <option>Waxing</option>
+            <option>Other</option>
+          </select>
+          <div class="error-msg" id="err-service"></div>
+        </div>
+        <div class="form-group">
+          <label for="f-date">Date *</label>
+          <input type="date" id="f-date" />
+          <div class="error-msg" id="err-date"></div>
+        </div>
+        <div class="form-group">
+          <label for="f-time">Time *</label>
+          <input type="time" id="f-time" />
+          <div class="error-msg" id="err-time"></div>
+        </div>
+        <div class="form-group">
+          <label for="f-duration">Duration *</label>
+          <select id="f-duration">
+            <option value="30">30 min</option>
+            <option value="45">45 min</option>
+            <option value="60" selected>60 min</option>
+            <option value="90">90 min</option>
+            <option value="120">2 hours</option>
+            <option value="150">2.5 hours</option>
+            <option value="180">3 hours</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="f-price">Price ($) *</label>
+          <input type="number" id="f-price" placeholder="0.00" min="0" step="0.01" />
+          <div class="error-msg" id="err-price"></div>
+        </div>
+        <div class="form-group full">
+          <label for="f-status">Status</label>
+          <select id="f-status">
+            <option value="scheduled">Scheduled</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="no_show">No Show</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label for="f-notes">Notes</label>
+          <textarea id="f-notes" placeholder="Allergies, preferences, special requests…"></textarea>
+        </div>
+      </div>
+      <div class="error-msg" id="err-booking" style="text-align:center; margin-top:8px; font-size:0.85rem;"></div>
+      <div class="form-actions">
+        <button type="button" class="btn-cancel" id="form-cancel">Cancel</button>
+        <button type="submit" class="btn-save" id="form-save">Save Appointment</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Delete Confirm -->
+<div class="delete-confirm" id="delete-confirm">
+  <div class="delete-box">
+    <h3>Delete Appointment?</h3>
+    <p id="delete-confirm-text">This will permanently remove the appointment.</p>
+    <div class="delete-actions">
+      <button class="btn-cancel" id="delete-cancel">Keep It</button>
+      <button class="btn-delete" id="delete-ok">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── Storage ──────────────────────────────────────────────────────────────
+  const STORAGE_KEY = 'salon_appointments_v1';
+
+  function loadAll() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+    catch { return []; }
+  }
+  function saveAll(list) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+  }
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  let currentDate = todayStr();
+  let editingId = null;
+  let deletingId = null;
+
+  function todayStr() {
+    const d = new Date();
+    return d.toISOString().slice(0, 10);
+  }
+
+  function offsetDate(base, days) {
+    const d = new Date(base + 'T00:00:00');
+    d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0, 10);
+  }
+
+  function formatDateLabel(iso) {
+    const d = new Date(iso + 'T00:00:00');
+    const today = todayStr();
+    const tomorrow = offsetDate(today, 1);
+    const yesterday = offsetDate(today, -1);
+    const opts = { weekday: 'long', month: 'long', day: 'numeric' };
+    const label = d.toLocaleDateString('en-US', opts);
+    if (iso === today) return 'Today — ' + label;
+    if (iso === tomorrow) return 'Tomorrow — ' + label;
+    if (iso === yesterday) return 'Yesterday — ' + label;
+    return label;
+  }
+
+  function formatTime(t) {
+    const [h, m] = t.split(':').map(Number);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    return ((h % 12) || 12) + ':' + String(m).padStart(2, '0') + ' ' + ampm;
+  }
+
+  function timeToMins(t) {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  function fmtPrice(p) {
+    return '$' + Number(p).toFixed(2).replace(/\.00$/, '');
+  }
+
+  function fmtDuration(mins) {
+    if (mins < 60) return mins + ' min';
+    const h = Math.floor(mins / 60), m = mins % 60;
+    return h + 'h' + (m ? ' ' + m + 'm' : '');
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  function render() {
+    document.getElementById('date-label').textContent = formatDateLabel(currentDate);
+    document.getElementById('date-picker-input').value = currentDate;
+
+    const all = loadAll();
+    const day = all
+      .filter(a => a.date === currentDate)
+      .sort((a, b) => a.time.localeCompare(b.time));
+
+    // Stats
+    const active = day.filter(a => !['cancelled', 'no_show'].includes(a.status));
+    const rev = active.reduce((s, a) => s + Number(a.price), 0);
+    document.getElementById('stat-revenue').textContent = fmtPrice(rev);
+    document.getElementById('stat-count').textContent = day.length;
+
+    // List
+    const list = document.getElementById('appointments-list');
+    if (day.length === 0) {
+      list.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">🌸</div>
+          <h3>No appointments for this day</h3>
+          <p>Tap <strong>New</strong> to add the first booking.</p>
+        </div>`;
+      return;
+    }
+
+    const statusLabels = {
+      scheduled: 'Scheduled', confirmed: 'Confirmed',
+      completed: 'Completed', cancelled: 'Cancelled', no_show: 'No Show'
+    };
+
+    list.innerHTML = day.map(a => `
+      <div class="appointment-card" data-id="${a.id}">
+        <div class="time-col">
+          <div class="appt-time">${formatTime(a.time)}</div>
+          <div class="appt-duration">${fmtDuration(Number(a.duration))}</div>
+        </div>
+        <div class="card-body">
+          <div class="client-name">${esc(a.clientName)}</div>
+          <div class="service-row">${esc(a.service)}</div>
+          <div class="card-meta">
+            <span class="badge badge-${a.status}">${statusLabels[a.status] || a.status}</span>
+            <span class="price-tag">${fmtPrice(a.price)}</span>
+            <span class="phone-tag">${esc(a.phone)}</span>
+            ${a.notes ? `<span class="notes-tag" title="${esc(a.notes)}">📝 ${esc(a.notes)}</span>` : ''}
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="icon-btn edit" data-id="${a.id}" title="Edit">✏️</button>
+          <button class="icon-btn delete" data-id="${a.id}" title="Delete">🗑️</button>
+        </div>
+      </div>
+    `).join('');
+
+    // Event delegation
+    list.querySelectorAll('.edit').forEach(btn => {
+      btn.addEventListener('click', e => { e.stopPropagation(); openEdit(btn.dataset.id); });
+    });
+    list.querySelectorAll('.delete').forEach(btn => {
+      btn.addEventListener('click', e => { e.stopPropagation(); openDelete(btn.dataset.id); });
+    });
+    list.querySelectorAll('.appointment-card').forEach(card => {
+      card.addEventListener('click', () => openEdit(card.dataset.id));
+    });
+  }
+
+  function esc(s) {
+    return String(s || '')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  // ── Date navigation ───────────────────────────────────────────────────────
+  document.getElementById('prev-day').addEventListener('click', () => {
+    currentDate = offsetDate(currentDate, -1);
+    render();
+  });
+  document.getElementById('next-day').addEventListener('click', () => {
+    currentDate = offsetDate(currentDate, 1);
+    render();
+  });
+  document.getElementById('go-today').addEventListener('click', () => {
+    currentDate = todayStr();
+    render();
+  });
+  document.getElementById('date-picker-input').addEventListener('change', e => {
+    if (e.target.value) { currentDate = e.target.value; render(); }
+  });
+
+  // ── Modal ─────────────────────────────────────────────────────────────────
+  function openAdd() {
+    editingId = null;
+    document.getElementById('modal-title').textContent = 'New Appointment';
+    document.getElementById('form-save').textContent = 'Save Appointment';
+    clearForm();
+    document.getElementById('f-date').value = currentDate;
+    document.getElementById('modal-backdrop').classList.add('open');
+    document.getElementById('f-name').focus();
+  }
+
+  function openEdit(id) {
+    const all = loadAll();
+    const a = all.find(x => x.id === id);
+    if (!a) return;
+    editingId = id;
+    document.getElementById('modal-title').textContent = 'Edit Appointment';
+    document.getElementById('form-save').textContent = 'Update Appointment';
+    clearErrors();
+    document.getElementById('f-name').value    = a.clientName;
+    document.getElementById('f-phone').value   = a.phone;
+    document.getElementById('f-service').value = a.service;
+    document.getElementById('f-date').value    = a.date;
+    document.getElementById('f-time').value    = a.time;
+    document.getElementById('f-duration').value = String(a.duration);
+    document.getElementById('f-price').value   = a.price;
+    document.getElementById('f-status').value  = a.status;
+    document.getElementById('f-notes').value   = a.notes || '';
+    document.getElementById('modal-backdrop').classList.add('open');
+    document.getElementById('f-name').focus();
+  }
+
+  function closeModal() {
+    document.getElementById('modal-backdrop').classList.remove('open');
+    editingId = null;
+  }
+
+  function clearForm() {
+    document.getElementById('appt-form').reset();
+    document.getElementById('f-duration').value = '60';
+    document.getElementById('f-status').value = 'scheduled';
+    clearErrors();
+  }
+
+  function clearErrors() {
+    ['name','phone','service','date','time','price','booking']
+      .forEach(f => { const el = document.getElementById('err-'+f); if(el) el.textContent = ''; });
+  }
+
+  document.getElementById('open-add').addEventListener('click', openAdd);
+  document.getElementById('modal-close').addEventListener('click', closeModal);
+  document.getElementById('form-cancel').addEventListener('click', closeModal);
+  document.getElementById('modal-backdrop').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeModal();
+  });
+
+  // ── Form submit ───────────────────────────────────────────────────────────
+  document.getElementById('appt-form').addEventListener('submit', e => {
+    e.preventDefault();
+    clearErrors();
+
+    const name     = document.getElementById('f-name').value.trim();
+    const phone    = document.getElementById('f-phone').value.trim();
+    const service  = document.getElementById('f-service').value;
+    const date     = document.getElementById('f-date').value;
+    const time     = document.getElementById('f-time').value;
+    const duration = parseInt(document.getElementById('f-duration').value, 10);
+    const price    = parseFloat(document.getElementById('f-price').value);
+    const status   = document.getElementById('f-status').value;
+    const notes    = document.getElementById('f-notes').value.trim();
+
+    let valid = true;
+    if (!name)                    { document.getElementById('err-name').textContent = 'Required'; valid = false; }
+    if (!phone)                   { document.getElementById('err-phone').textContent = 'Required'; valid = false; }
+    if (!service)                 { document.getElementById('err-service').textContent = 'Required'; valid = false; }
+    if (!date)                    { document.getElementById('err-date').textContent = 'Required'; valid = false; }
+    if (!time)                    { document.getElementById('err-time').textContent = 'Required'; valid = false; }
+    if (isNaN(price) || price < 0){ document.getElementById('err-price').textContent = 'Enter a valid price'; valid = false; }
+    if (!valid) return;
+
+    // Double-booking check
+    const all = loadAll();
+    const newStart = timeToMins(time);
+    const newEnd   = newStart + duration;
+    const conflict = all.find(a => {
+      if (a.date !== date) return false;
+      if (a.id === editingId) return false;
+      if (['cancelled','no_show'].includes(a.status)) return false;
+      const s = timeToMins(a.time), en = s + Number(a.duration);
+      return newStart < en && newEnd > s;
+    });
+    if (conflict) {
+      document.getElementById('err-booking').textContent =
+        `⚠️ Time overlaps with ${conflict.clientName}'s ${conflict.service} at ${formatTime(conflict.time)}.`;
+      return;
+    }
+
+    if (editingId) {
+      const idx = all.findIndex(x => x.id === editingId);
+      if (idx !== -1) {
+        all[idx] = { ...all[idx], clientName: name, phone, service, date, time, duration, price, notes, status };
+        saveAll(all);
+        toast('Appointment updated ✓');
+      }
+    } else {
+      const appt = {
+        id: 'a' + Date.now() + Math.random().toString(36).slice(2, 6),
+        clientName: name, phone, service, date, time, duration, price, notes, status
+      };
+      all.push(appt);
+      saveAll(all);
+      toast('Appointment saved ✓');
+    }
+
+    closeModal();
+    currentDate = date;
+    render();
+  });
+
+  // ── Delete ────────────────────────────────────────────────────────────────
+  function openDelete(id) {
+    const all = loadAll();
+    const a = all.find(x => x.id === id);
+    if (!a) return;
+    deletingId = id;
+    document.getElementById('delete-confirm-text').textContent =
+      `Remove ${a.clientName}'s ${a.service} at ${formatTime(a.time)}?`;
+    document.getElementById('delete-confirm').classList.add('open');
+  }
+
+  document.getElementById('delete-cancel').addEventListener('click', () => {
+    document.getElementById('delete-confirm').classList.remove('open');
+    deletingId = null;
+  });
+
+  document.getElementById('delete-ok').addEventListener('click', () => {
+    if (deletingId) {
+      const all = loadAll().filter(a => a.id !== deletingId);
+      saveAll(all);
+      toast('Appointment deleted');
+      deletingId = null;
+      document.getElementById('delete-confirm').classList.remove('open');
+      render();
+    }
+  });
+
+  // ── Toast ─────────────────────────────────────────────────────────────────
+  let toastTimer;
+  function toast(msg, isError = false) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'toast show' + (isError ? ' error' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.classList.remove('show'); }, 2600);
+  }
+
+  // ── Keyboard ──────────────────────────────────────────────────────────────
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      closeModal();
+      document.getElementById('delete-confirm').classList.remove('open');
+    }
+  });
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  render();
+</script>
+</body>
 </html>
