@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Salon Appointment Calendar</title>
+  <title>Kalendarz Wizyt — Salon</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -183,14 +183,6 @@
     }
     .appt-time { font-size: 0.95rem; font-weight: 600; color: var(--rose); line-height: 1.2; }
     .appt-duration { font-size: 0.72rem; color: var(--text-light); margin-top: 2px; }
-    .time-line {
-      width: 2px;
-      background: var(--blush);
-      border-radius: 2px;
-      margin: 6px auto 0;
-      min-height: 24px;
-      flex-shrink: 0;
-    }
     .card-body { flex: 1; min-width: 0; }
     .client-name { font-size: 1rem; font-weight: 600; color: var(--text-dark); }
     .service-row { font-size: 0.85rem; color: var(--text-mid); margin-top: 2px; }
@@ -381,16 +373,16 @@
 <header>
   <div class="header-inner">
     <div>
-      <div class="salon-title">✦ Beauty Salon</div>
-      <div class="salon-sub">Appointment Calendar</div>
+      <div class="salon-title">✦ Salon Piękności</div>
+      <div class="salon-sub">Kalendarz wizyt</div>
     </div>
     <div class="header-stats">
       <div class="stat-box">
-        <div class="stat-label">Today's Revenue</div>
-        <div class="stat-value" id="stat-revenue">$0</div>
+        <div class="stat-label">Przychód dnia</div>
+        <div class="stat-value" id="stat-revenue">0 zł</div>
       </div>
       <div class="stat-box">
-        <div class="stat-label">Bookings</div>
+        <div class="stat-label">Wizyty</div>
         <div class="stat-value" id="stat-count">0</div>
       </div>
     </div>
@@ -398,127 +390,128 @@
 </header>
 
 <div class="date-nav">
-  <button class="nav-btn" id="prev-day" title="Previous day">&#8249;</button>
+  <button class="nav-btn" id="prev-day" title="Poprzedni dzień">&#8249;</button>
   <div class="date-display">
     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-    <span id="date-label">Today</span>
-    <input type="date" id="date-picker-input" title="Pick a date" />
+    <span id="date-label">Dzisiaj</span>
+    <input type="date" id="date-picker-input" title="Wybierz datę" />
   </div>
-  <button class="today-btn" id="go-today">Today</button>
-  <button class="nav-btn" id="next-day" title="Next day">&#8250;</button>
+  <button class="today-btn" id="go-today">Dzisiaj</button>
+  <button class="nav-btn" id="next-day" title="Następny dzień">&#8250;</button>
   <button class="add-btn" id="open-add">
-    <span>+</span> New
+    <span>+</span> Nowa wizyta
   </button>
 </div>
 
 <main id="appointments-list"></main>
 
-<!-- Appointment Modal -->
+<!-- Formularz wizyty -->
 <div class="modal-backdrop" id="modal-backdrop">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal-header">
-      <h2 class="modal-title" id="modal-title">New Appointment</h2>
-      <button class="close-btn" id="modal-close" aria-label="Close">✕</button>
+      <h2 class="modal-title" id="modal-title">Nowa wizyta</h2>
+      <button class="close-btn" id="modal-close" aria-label="Zamknij">✕</button>
     </div>
     <form id="appt-form" novalidate>
       <div class="form-grid">
         <div class="form-group">
-          <label for="f-name">Client Name *</label>
-          <input type="text" id="f-name" placeholder="e.g. Sarah Johnson" autocomplete="off" />
+          <label for="f-name">Imię i nazwisko *</label>
+          <input type="text" id="f-name" placeholder="np. Anna Kowalska" autocomplete="off" />
           <div class="error-msg" id="err-name"></div>
         </div>
         <div class="form-group">
-          <label for="f-phone">Phone *</label>
-          <input type="tel" id="f-phone" placeholder="e.g. 555-123-4567" />
+          <label for="f-phone">Telefon *</label>
+          <input type="tel" id="f-phone" placeholder="np. 600 123 456" />
           <div class="error-msg" id="err-phone"></div>
         </div>
         <div class="form-group full">
-          <label for="f-service">Service *</label>
+          <label for="f-service">Usługa *</label>
           <select id="f-service">
-            <option value="">— Select a service —</option>
-            <option>Haircut</option>
-            <option>Color</option>
-            <option>Highlights</option>
+            <option value="">— Wybierz usługę —</option>
+            <option>Strzyżenie</option>
+            <option>Farbowanie</option>
+            <option>Pasemka</option>
             <option>Balayage</option>
-            <option>Blowout</option>
-            <option>Trim</option>
-            <option>Treatment</option>
-            <option>Extensions</option>
-            <option>Nails</option>
-            <option>Facial</option>
-            <option>Waxing</option>
-            <option>Other</option>
+            <option>Modelowanie</option>
+            <option>Przycinanie</option>
+            <option>Pielęgnacja włosów</option>
+            <option>Przedłużanie włosów</option>
+            <option>Manicure</option>
+            <option>Pedicure</option>
+            <option>Zabieg na twarz</option>
+            <option>Depilacja</option>
+            <option>Inne</option>
           </select>
           <div class="error-msg" id="err-service"></div>
         </div>
         <div class="form-group">
-          <label for="f-date">Date *</label>
+          <label for="f-date">Data *</label>
           <input type="date" id="f-date" />
           <div class="error-msg" id="err-date"></div>
         </div>
         <div class="form-group">
-          <label for="f-time">Time *</label>
+          <label for="f-time">Godzina *</label>
           <input type="time" id="f-time" />
           <div class="error-msg" id="err-time"></div>
         </div>
         <div class="form-group">
-          <label for="f-duration">Duration *</label>
+          <label for="f-duration">Czas trwania *</label>
           <select id="f-duration">
             <option value="30">30 min</option>
             <option value="45">45 min</option>
-            <option value="60" selected>60 min</option>
-            <option value="90">90 min</option>
-            <option value="120">2 hours</option>
-            <option value="150">2.5 hours</option>
-            <option value="180">3 hours</option>
+            <option value="60" selected>1 godz.</option>
+            <option value="90">1 godz. 30 min</option>
+            <option value="120">2 godz.</option>
+            <option value="150">2 godz. 30 min</option>
+            <option value="180">3 godz.</option>
           </select>
         </div>
         <div class="form-group">
-          <label for="f-price">Price ($) *</label>
-          <input type="number" id="f-price" placeholder="0.00" min="0" step="0.01" />
+          <label for="f-price">Cena (zł) *</label>
+          <input type="number" id="f-price" placeholder="0,00" min="0" step="0.01" />
           <div class="error-msg" id="err-price"></div>
         </div>
         <div class="form-group full">
           <label for="f-status">Status</label>
           <select id="f-status">
-            <option value="scheduled">Scheduled</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="no_show">No Show</option>
+            <option value="scheduled">Zaplanowana</option>
+            <option value="confirmed">Potwierdzona</option>
+            <option value="completed">Zakończona</option>
+            <option value="cancelled">Anulowana</option>
+            <option value="no_show">Nieobecność</option>
           </select>
         </div>
         <div class="form-group full">
-          <label for="f-notes">Notes</label>
-          <textarea id="f-notes" placeholder="Allergies, preferences, special requests…"></textarea>
+          <label for="f-notes">Uwagi</label>
+          <textarea id="f-notes" placeholder="Alergie, preferencje, specjalne życzenia…"></textarea>
         </div>
       </div>
       <div class="error-msg" id="err-booking" style="text-align:center; margin-top:8px; font-size:0.85rem;"></div>
       <div class="form-actions">
-        <button type="button" class="btn-cancel" id="form-cancel">Cancel</button>
-        <button type="submit" class="btn-save" id="form-save">Save Appointment</button>
+        <button type="button" class="btn-cancel" id="form-cancel">Anuluj</button>
+        <button type="submit" class="btn-save" id="form-save">Zapisz wizytę</button>
       </div>
     </form>
   </div>
 </div>
 
-<!-- Delete Confirm -->
+<!-- Potwierdzenie usunięcia -->
 <div class="delete-confirm" id="delete-confirm">
   <div class="delete-box">
-    <h3>Delete Appointment?</h3>
-    <p id="delete-confirm-text">This will permanently remove the appointment.</p>
+    <h3>Usunąć wizytę?</h3>
+    <p id="delete-confirm-text">Ta operacja jest nieodwracalna.</p>
     <div class="delete-actions">
-      <button class="btn-cancel" id="delete-cancel">Keep It</button>
-      <button class="btn-delete" id="delete-ok">Delete</button>
+      <button class="btn-cancel" id="delete-cancel">Zachowaj</button>
+      <button class="btn-delete" id="delete-ok">Usuń</button>
     </div>
   </div>
 </div>
 
-<!-- Toast -->
+<!-- Powiadomienie -->
 <div class="toast" id="toast"></div>
 
 <script>
-  // ── Storage ──────────────────────────────────────────────────────────────
+  // ── Pamięć lokalna ────────────────────────────────────────────────────────
   const STORAGE_KEY = 'salon_appointments_v1';
 
   function loadAll() {
@@ -529,7 +522,7 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
   }
 
-  // ── State ─────────────────────────────────────────────────────────────────
+  // ── Stan aplikacji ────────────────────────────────────────────────────────
   let currentDate = todayStr();
   let editingId = null;
   let deletingId = null;
@@ -550,18 +543,16 @@
     const today = todayStr();
     const tomorrow = offsetDate(today, 1);
     const yesterday = offsetDate(today, -1);
-    const opts = { weekday: 'long', month: 'long', day: 'numeric' };
-    const label = d.toLocaleDateString('en-US', opts);
-    if (iso === today) return 'Today — ' + label;
-    if (iso === tomorrow) return 'Tomorrow — ' + label;
-    if (iso === yesterday) return 'Yesterday — ' + label;
+    const opts = { weekday: 'long', day: 'numeric', month: 'long' };
+    const label = d.toLocaleDateString('pl-PL', opts);
+    if (iso === today) return 'Dzisiaj — ' + label;
+    if (iso === tomorrow) return 'Jutro — ' + label;
+    if (iso === yesterday) return 'Wczoraj — ' + label;
     return label;
   }
 
   function formatTime(t) {
-    const [h, m] = t.split(':').map(Number);
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    return ((h % 12) || 12) + ':' + String(m).padStart(2, '0') + ' ' + ampm;
+    return t; // format 24h, standard w Polsce
   }
 
   function timeToMins(t) {
@@ -570,16 +561,17 @@
   }
 
   function fmtPrice(p) {
-    return '$' + Number(p).toFixed(2).replace(/\.00$/, '');
+    const val = Number(p);
+    return val % 1 === 0 ? val + ' zł' : val.toFixed(2).replace('.', ',') + ' zł';
   }
 
   function fmtDuration(mins) {
     if (mins < 60) return mins + ' min';
     const h = Math.floor(mins / 60), m = mins % 60;
-    return h + 'h' + (m ? ' ' + m + 'm' : '');
+    return h + ' godz.' + (m ? ' ' + m + ' min' : '');
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // ── Wyświetlanie ──────────────────────────────────────────────────────────
   function render() {
     document.getElementById('date-label').textContent = formatDateLabel(currentDate);
     document.getElementById('date-picker-input').value = currentDate;
@@ -589,27 +581,30 @@
       .filter(a => a.date === currentDate)
       .sort((a, b) => a.time.localeCompare(b.time));
 
-    // Stats
+    // Statystyki
     const active = day.filter(a => !['cancelled', 'no_show'].includes(a.status));
     const rev = active.reduce((s, a) => s + Number(a.price), 0);
     document.getElementById('stat-revenue').textContent = fmtPrice(rev);
     document.getElementById('stat-count').textContent = day.length;
 
-    // List
+    // Lista wizyt
     const list = document.getElementById('appointments-list');
     if (day.length === 0) {
       list.innerHTML = `
         <div class="empty-state">
           <div class="empty-icon">🌸</div>
-          <h3>No appointments for this day</h3>
-          <p>Tap <strong>New</strong> to add the first booking.</p>
+          <h3>Brak wizyt na ten dzień</h3>
+          <p>Kliknij <strong>Nowa wizyta</strong>, aby dodać pierwszą wizytę.</p>
         </div>`;
       return;
     }
 
     const statusLabels = {
-      scheduled: 'Scheduled', confirmed: 'Confirmed',
-      completed: 'Completed', cancelled: 'Cancelled', no_show: 'No Show'
+      scheduled: 'Zaplanowana',
+      confirmed: 'Potwierdzona',
+      completed: 'Zakończona',
+      cancelled: 'Anulowana',
+      no_show:   'Nieobecność'
     };
 
     list.innerHTML = day.map(a => `
@@ -629,13 +624,12 @@
           </div>
         </div>
         <div class="card-actions">
-          <button class="icon-btn edit" data-id="${a.id}" title="Edit">✏️</button>
-          <button class="icon-btn delete" data-id="${a.id}" title="Delete">🗑️</button>
+          <button class="icon-btn edit" data-id="${a.id}" title="Edytuj">✏️</button>
+          <button class="icon-btn delete" data-id="${a.id}" title="Usuń">🗑️</button>
         </div>
       </div>
     `).join('');
 
-    // Event delegation
     list.querySelectorAll('.edit').forEach(btn => {
       btn.addEventListener('click', e => { e.stopPropagation(); openEdit(btn.dataset.id); });
     });
@@ -653,7 +647,7 @@
       .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
-  // ── Date navigation ───────────────────────────────────────────────────────
+  // ── Nawigacja po datach ───────────────────────────────────────────────────
   document.getElementById('prev-day').addEventListener('click', () => {
     currentDate = offsetDate(currentDate, -1);
     render();
@@ -670,11 +664,11 @@
     if (e.target.value) { currentDate = e.target.value; render(); }
   });
 
-  // ── Modal ─────────────────────────────────────────────────────────────────
+  // ── Okno modalne ──────────────────────────────────────────────────────────
   function openAdd() {
     editingId = null;
-    document.getElementById('modal-title').textContent = 'New Appointment';
-    document.getElementById('form-save').textContent = 'Save Appointment';
+    document.getElementById('modal-title').textContent = 'Nowa wizyta';
+    document.getElementById('form-save').textContent = 'Zapisz wizytę';
     clearForm();
     document.getElementById('f-date').value = currentDate;
     document.getElementById('modal-backdrop').classList.add('open');
@@ -686,18 +680,18 @@
     const a = all.find(x => x.id === id);
     if (!a) return;
     editingId = id;
-    document.getElementById('modal-title').textContent = 'Edit Appointment';
-    document.getElementById('form-save').textContent = 'Update Appointment';
+    document.getElementById('modal-title').textContent = 'Edytuj wizytę';
+    document.getElementById('form-save').textContent = 'Zaktualizuj wizytę';
     clearErrors();
-    document.getElementById('f-name').value    = a.clientName;
-    document.getElementById('f-phone').value   = a.phone;
-    document.getElementById('f-service').value = a.service;
-    document.getElementById('f-date').value    = a.date;
-    document.getElementById('f-time').value    = a.time;
+    document.getElementById('f-name').value     = a.clientName;
+    document.getElementById('f-phone').value    = a.phone;
+    document.getElementById('f-service').value  = a.service;
+    document.getElementById('f-date').value     = a.date;
+    document.getElementById('f-time').value     = a.time;
     document.getElementById('f-duration').value = String(a.duration);
-    document.getElementById('f-price').value   = a.price;
-    document.getElementById('f-status').value  = a.status;
-    document.getElementById('f-notes').value   = a.notes || '';
+    document.getElementById('f-price').value    = a.price;
+    document.getElementById('f-status').value   = a.status;
+    document.getElementById('f-notes').value    = a.notes || '';
     document.getElementById('modal-backdrop').classList.add('open');
     document.getElementById('f-name').focus();
   }
@@ -726,7 +720,7 @@
     if (e.target === e.currentTarget) closeModal();
   });
 
-  // ── Form submit ───────────────────────────────────────────────────────────
+  // ── Zapis formularza ──────────────────────────────────────────────────────
   document.getElementById('appt-form').addEventListener('submit', e => {
     e.preventDefault();
     clearErrors();
@@ -742,15 +736,15 @@
     const notes    = document.getElementById('f-notes').value.trim();
 
     let valid = true;
-    if (!name)                    { document.getElementById('err-name').textContent = 'Required'; valid = false; }
-    if (!phone)                   { document.getElementById('err-phone').textContent = 'Required'; valid = false; }
-    if (!service)                 { document.getElementById('err-service').textContent = 'Required'; valid = false; }
-    if (!date)                    { document.getElementById('err-date').textContent = 'Required'; valid = false; }
-    if (!time)                    { document.getElementById('err-time').textContent = 'Required'; valid = false; }
-    if (isNaN(price) || price < 0){ document.getElementById('err-price').textContent = 'Enter a valid price'; valid = false; }
+    if (!name)                     { document.getElementById('err-name').textContent = 'Pole wymagane'; valid = false; }
+    if (!phone)                    { document.getElementById('err-phone').textContent = 'Pole wymagane'; valid = false; }
+    if (!service)                  { document.getElementById('err-service').textContent = 'Wybierz usługę'; valid = false; }
+    if (!date)                     { document.getElementById('err-date').textContent = 'Pole wymagane'; valid = false; }
+    if (!time)                     { document.getElementById('err-time').textContent = 'Pole wymagane'; valid = false; }
+    if (isNaN(price) || price < 0) { document.getElementById('err-price').textContent = 'Podaj prawidłową cenę'; valid = false; }
     if (!valid) return;
 
-    // Double-booking check
+    // Sprawdzenie podwójnej rezerwacji
     const all = loadAll();
     const newStart = timeToMins(time);
     const newEnd   = newStart + duration;
@@ -763,7 +757,7 @@
     });
     if (conflict) {
       document.getElementById('err-booking').textContent =
-        `⚠️ Time overlaps with ${conflict.clientName}'s ${conflict.service} at ${formatTime(conflict.time)}.`;
+        `⚠️ Godzina nakłada się na wizytę klientki ${conflict.clientName} (${conflict.service}) o ${formatTime(conflict.time)}.`;
       return;
     }
 
@@ -772,7 +766,7 @@
       if (idx !== -1) {
         all[idx] = { ...all[idx], clientName: name, phone, service, date, time, duration, price, notes, status };
         saveAll(all);
-        toast('Appointment updated ✓');
+        toast('Wizyta zaktualizowana ✓');
       }
     } else {
       const appt = {
@@ -781,7 +775,7 @@
       };
       all.push(appt);
       saveAll(all);
-      toast('Appointment saved ✓');
+      toast('Wizyta zapisana ✓');
     }
 
     closeModal();
@@ -789,14 +783,14 @@
     render();
   });
 
-  // ── Delete ────────────────────────────────────────────────────────────────
+  // ── Usuwanie wizyty ───────────────────────────────────────────────────────
   function openDelete(id) {
     const all = loadAll();
     const a = all.find(x => x.id === id);
     if (!a) return;
     deletingId = id;
     document.getElementById('delete-confirm-text').textContent =
-      `Remove ${a.clientName}'s ${a.service} at ${formatTime(a.time)}?`;
+      `Usunąć wizytę klientki ${a.clientName} (${a.service}) o godz. ${formatTime(a.time)}?`;
     document.getElementById('delete-confirm').classList.add('open');
   }
 
@@ -809,14 +803,14 @@
     if (deletingId) {
       const all = loadAll().filter(a => a.id !== deletingId);
       saveAll(all);
-      toast('Appointment deleted');
+      toast('Wizyta usunięta');
       deletingId = null;
       document.getElementById('delete-confirm').classList.remove('open');
       render();
     }
   });
 
-  // ── Toast ─────────────────────────────────────────────────────────────────
+  // ── Powiadomienie ─────────────────────────────────────────────────────────
   let toastTimer;
   function toast(msg, isError = false) {
     const el = document.getElementById('toast');
@@ -826,7 +820,7 @@
     toastTimer = setTimeout(() => { el.classList.remove('show'); }, 2600);
   }
 
-  // ── Keyboard ──────────────────────────────────────────────────────────────
+  // ── Skróty klawiszowe ─────────────────────────────────────────────────────
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
       closeModal();
@@ -834,7 +828,7 @@
     }
   });
 
-  // ── Init ──────────────────────────────────────────────────────────────────
+  // ── Start ─────────────────────────────────────────────────────────────────
   render();
 </script>
 </body>
