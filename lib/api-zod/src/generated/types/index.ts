@@ -6,4 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./appointment";
+export * from "./appointmentInput";
+export * from "./appointmentInputStatus";
+export * from "./appointmentStatus";
+export * from "./errorResponse";
 export * from "./healthStatus";
+export * from "./listAppointmentsParams";

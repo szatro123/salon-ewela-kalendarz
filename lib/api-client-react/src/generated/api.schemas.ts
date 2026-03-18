@@ -8,3 +8,70 @@
 export interface HealthStatus {
   status: string;
 }
+
+export type AppointmentStatus =
+  (typeof AppointmentStatus)[keyof typeof AppointmentStatus];
+
+export const AppointmentStatus = {
+  scheduled: "scheduled",
+  confirmed: "confirmed",
+  completed: "completed",
+  cancelled: "cancelled",
+  no_show: "no_show",
+} as const;
+
+export interface Appointment {
+  id: number;
+  clientName: string;
+  phone: string;
+  service: string;
+  /** Date in YYYY-MM-DD format */
+  date: string;
+  /** Time in HH:MM format */
+  time: string;
+  /** Duration in minutes */
+  duration: number;
+  price: number;
+  notes?: string | null;
+  status: AppointmentStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type AppointmentInputStatus =
+  (typeof AppointmentInputStatus)[keyof typeof AppointmentInputStatus];
+
+export const AppointmentInputStatus = {
+  scheduled: "scheduled",
+  confirmed: "confirmed",
+  completed: "completed",
+  cancelled: "cancelled",
+  no_show: "no_show",
+} as const;
+
+export interface AppointmentInput {
+  clientName: string;
+  phone: string;
+  service: string;
+  /** Date in YYYY-MM-DD format */
+  date: string;
+  /** Time in HH:MM format */
+  time: string;
+  /** Duration in minutes */
+  duration: number;
+  price: number;
+  notes?: string | null;
+  status: AppointmentInputStatus;
+}
+
+export interface ErrorResponse {
+  error: string;
+  message: string;
+}
+
+export type ListAppointmentsParams = {
+  /**
+   * Filter by date (YYYY-MM-DD)
+   */
+  date?: string;
+};

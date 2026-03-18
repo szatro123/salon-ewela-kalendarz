@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Salon Appointment Calendar"
+version = "1.0.0"
+id = "artifacts/salon-calendar"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+localPort = 21644
+name = "web"
+paths = ["/"]
+
+[services.development]
+run = "pnpm --filter @workspace/salon-calendar run dev"
+
+[services.env]
+PORT = "21644"
+BASE_PATH = "/"
+
+[services.production]
+build = ["pnpm", "--filter", "@workspace/salon-calendar", "run", "build"]
+publicDir = "artifacts/salon-calendar/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"

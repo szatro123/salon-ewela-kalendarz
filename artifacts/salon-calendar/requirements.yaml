@@ -1,0 +1,22 @@
+packages:
+  "date-fns": "For date formatting and navigation"
+  "framer-motion": "For page transitions and interactive animations"
+  "react-hook-form": "For robust form state management"
+  "@hookform/resolvers": "For Zod schema validation integration"
+  "clsx": "For conditional class merging"
+  "tailwind-merge": "For reliable tailwind class overriding"
+  "@radix-ui/react-dialog": "For accessible modals"
+  "@radix-ui/react-slot": "For component slotting"
+
+images:
+  - path: "artifacts/salon-calendar/public/images/hero-bg.png"
+    description: "Soft elegant abstract gradient mesh in warm blush, soft rose, and cream tones, evoking a premium beauty spa aesthetic"
+    aspect_ratio: "16:9"
+  - path: "artifacts/salon-calendar/public/images/empty-state.png"
+    description: "Minimalist elegant line art illustration of a serene spa setting, soft neutral colors, transparent background"
+    aspect_ratio: "1:1"
+
+notes:
+  - "Assuming @workspace/api-client-react exports the Orval generated hooks and schemas from its root"
+  - "Orval hooks require manual cache invalidation using TanStack Query's queryClient"
+  - "Date formats expect YYYY-MM-DD"

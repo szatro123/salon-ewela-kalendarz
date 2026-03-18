@@ -1,6 +1,5 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
   description: API specification
@@ -10,6 +9,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: appointments
+    description: Appointment operations
 paths:
   /healthz:
     get:
@@ -24,6 +25,129 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /appointments:
+    get:
+      operationId: listAppointments
+      tags: [appointments]
+      summary: List appointments
+      description: Returns appointments, optionally filtered by date
+      parameters:
+        - name: date
+          in: query
+          required: false
+          schema:
+            type: string
+            description: Filter by date (YYYY-MM-DD)
+      responses:
+        "200":
+          description: List of appointments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Appointment"
+    post:
+      operationId: createAppointment
+      tags: [appointments]
+      summary: Create an appointment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppointmentInput"
+      responses:
+        "201":
+          description: Appointment created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Appointment"
+        "409":
+          description: Double booking conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /appointments/{id}:
+    get:
+      operationId: getAppointment
+      tags: [appointments]
+      summary: Get an appointment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Appointment found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Appointment"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateAppointment
+      tags: [appointments]
+      summary: Update an appointment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppointmentInput"
+      responses:
+        "200":
+          description: Appointment updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Appointment"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Double booking conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAppointment
+      tags: [appointments]
+      summary: Delete an appointment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Appointment deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +157,92 @@ components:
           type: string
       required:
         - status
-
+    Appointment:
+      type: object
+      properties:
+        id:
+          type: integer
+        clientName:
+          type: string
+        phone:
+          type: string
+        service:
+          type: string
+        date:
+          type: string
+          description: Date in YYYY-MM-DD format
+        time:
+          type: string
+          description: Time in HH:MM format
+        duration:
+          type: integer
+          description: Duration in minutes
+        price:
+          type: number
+        notes:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [scheduled, confirmed, completed, cancelled, no_show]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - clientName
+        - phone
+        - service
+        - date
+        - time
+        - duration
+        - price
+        - status
+        - createdAt
+        - updatedAt
+    AppointmentInput:
+      type: object
+      properties:
+        clientName:
+          type: string
+        phone:
+          type: string
+        service:
+          type: string
+        date:
+          type: string
+          description: Date in YYYY-MM-DD format
+        time:
+          type: string
+          description: Time in HH:MM format
+        duration:
+          type: integer
+          description: Duration in minutes
+        price:
+          type: number
+        notes:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [scheduled, confirmed, completed, cancelled, no_show]
+      required:
+        - clientName
+        - phone
+        - service
+        - date
+        - time
+        - duration
+        - price
+        - status
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+        - message

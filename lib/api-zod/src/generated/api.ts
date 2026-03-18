@@ -14,3 +14,135 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * Returns appointments, optionally filtered by date
+ * @summary List appointments
+ */
+export const ListAppointmentsQueryParams = zod.object({
+  date: zod.coerce.string().optional(),
+});
+
+export const ListAppointmentsResponseItem = zod.object({
+  id: zod.number(),
+  clientName: zod.string(),
+  phone: zod.string(),
+  service: zod.string(),
+  date: zod.string().describe("Date in YYYY-MM-DD format"),
+  time: zod.string().describe("Time in HH:MM format"),
+  duration: zod.number().describe("Duration in minutes"),
+  price: zod.number(),
+  notes: zod.string().nullish(),
+  status: zod.enum([
+    "scheduled",
+    "confirmed",
+    "completed",
+    "cancelled",
+    "no_show",
+  ]),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+export const ListAppointmentsResponse = zod.array(ListAppointmentsResponseItem);
+
+/**
+ * @summary Create an appointment
+ */
+export const CreateAppointmentBody = zod.object({
+  clientName: zod.string(),
+  phone: zod.string(),
+  service: zod.string(),
+  date: zod.string().describe("Date in YYYY-MM-DD format"),
+  time: zod.string().describe("Time in HH:MM format"),
+  duration: zod.number().describe("Duration in minutes"),
+  price: zod.number(),
+  notes: zod.string().nullish(),
+  status: zod.enum([
+    "scheduled",
+    "confirmed",
+    "completed",
+    "cancelled",
+    "no_show",
+  ]),
+});
+
+/**
+ * @summary Get an appointment
+ */
+export const GetAppointmentParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetAppointmentResponse = zod.object({
+  id: zod.number(),
+  clientName: zod.string(),
+  phone: zod.string(),
+  service: zod.string(),
+  date: zod.string().describe("Date in YYYY-MM-DD format"),
+  time: zod.string().describe("Time in HH:MM format"),
+  duration: zod.number().describe("Duration in minutes"),
+  price: zod.number(),
+  notes: zod.string().nullish(),
+  status: zod.enum([
+    "scheduled",
+    "confirmed",
+    "completed",
+    "cancelled",
+    "no_show",
+  ]),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Update an appointment
+ */
+export const UpdateAppointmentParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateAppointmentBody = zod.object({
+  clientName: zod.string(),
+  phone: zod.string(),
+  service: zod.string(),
+  date: zod.string().describe("Date in YYYY-MM-DD format"),
+  time: zod.string().describe("Time in HH:MM format"),
+  duration: zod.number().describe("Duration in minutes"),
+  price: zod.number(),
+  notes: zod.string().nullish(),
+  status: zod.enum([
+    "scheduled",
+    "confirmed",
+    "completed",
+    "cancelled",
+    "no_show",
+  ]),
+});
+
+export const UpdateAppointmentResponse = zod.object({
+  id: zod.number(),
+  clientName: zod.string(),
+  phone: zod.string(),
+  service: zod.string(),
+  date: zod.string().describe("Date in YYYY-MM-DD format"),
+  time: zod.string().describe("Time in HH:MM format"),
+  duration: zod.number().describe("Duration in minutes"),
+  price: zod.number(),
+  notes: zod.string().nullish(),
+  status: zod.enum([
+    "scheduled",
+    "confirmed",
+    "completed",
+    "cancelled",
+    "no_show",
+  ]),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Delete an appointment
+ */
+export const DeleteAppointmentParams = zod.object({
+  id: zod.coerce.number(),
+});

@@ -5,18 +5,27 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { HealthStatus } from "./api.schemas";
+import type {
+  Appointment,
+  AppointmentInput,
+  ErrorResponse,
+  HealthStatus,
+  ListAppointmentsParams,
+} from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
-import type { ErrorType } from "../custom-fetch";
+import type { ErrorType, BodyType } from "../custom-fetch";
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -99,3 +108,445 @@ export function useHealthCheck<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * Returns appointments, optionally filtered by date
+ * @summary List appointments
+ */
+export const getListAppointmentsUrl = (params?: ListAppointmentsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/appointments?${stringifiedParams}`
+    : `/api/appointments`;
+};
+
+export const listAppointments = async (
+  params?: ListAppointmentsParams,
+  options?: RequestInit,
+): Promise<Appointment[]> => {
+  return customFetch<Appointment[]>(getListAppointmentsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListAppointmentsQueryKey = (
+  params?: ListAppointmentsParams,
+) => {
+  return [`/api/appointments`, ...(params ? [params] : [])] as const;
+};
+
+export const getListAppointmentsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAppointments>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListAppointmentsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAppointments>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListAppointmentsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listAppointments>>
+  > = ({ signal }) => listAppointments(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAppointments>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAppointmentsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAppointments>>
+>;
+export type ListAppointmentsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List appointments
+ */
+
+export function useListAppointments<
+  TData = Awaited<ReturnType<typeof listAppointments>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListAppointmentsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAppointments>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAppointmentsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create an appointment
+ */
+export const getCreateAppointmentUrl = () => {
+  return `/api/appointments`;
+};
+
+export const createAppointment = async (
+  appointmentInput: AppointmentInput,
+  options?: RequestInit,
+): Promise<Appointment> => {
+  return customFetch<Appointment>(getCreateAppointmentUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(appointmentInput),
+  });
+};
+
+export const getCreateAppointmentMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAppointment>>,
+    TError,
+    { data: BodyType<AppointmentInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createAppointment>>,
+  TError,
+  { data: BodyType<AppointmentInput> },
+  TContext
+> => {
+  const mutationKey = ["createAppointment"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createAppointment>>,
+    { data: BodyType<AppointmentInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createAppointment(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateAppointmentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createAppointment>>
+>;
+export type CreateAppointmentMutationBody = BodyType<AppointmentInput>;
+export type CreateAppointmentMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Create an appointment
+ */
+export const useCreateAppointment = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAppointment>>,
+    TError,
+    { data: BodyType<AppointmentInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createAppointment>>,
+  TError,
+  { data: BodyType<AppointmentInput> },
+  TContext
+> => {
+  return useMutation(getCreateAppointmentMutationOptions(options));
+};
+
+/**
+ * @summary Get an appointment
+ */
+export const getGetAppointmentUrl = (id: number) => {
+  return `/api/appointments/${id}`;
+};
+
+export const getAppointment = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Appointment> => {
+  return customFetch<Appointment>(getGetAppointmentUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAppointmentQueryKey = (id: number) => {
+  return [`/api/appointments/${id}`] as const;
+};
+
+export const getGetAppointmentQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAppointment>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAppointment>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAppointmentQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAppointment>>> = ({
+    signal,
+  }) => getAppointment(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAppointment>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAppointmentQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAppointment>>
+>;
+export type GetAppointmentQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get an appointment
+ */
+
+export function useGetAppointment<
+  TData = Awaited<ReturnType<typeof getAppointment>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAppointment>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAppointmentQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update an appointment
+ */
+export const getUpdateAppointmentUrl = (id: number) => {
+  return `/api/appointments/${id}`;
+};
+
+export const updateAppointment = async (
+  id: number,
+  appointmentInput: AppointmentInput,
+  options?: RequestInit,
+): Promise<Appointment> => {
+  return customFetch<Appointment>(getUpdateAppointmentUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(appointmentInput),
+  });
+};
+
+export const getUpdateAppointmentMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAppointment>>,
+    TError,
+    { id: number; data: BodyType<AppointmentInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateAppointment>>,
+  TError,
+  { id: number; data: BodyType<AppointmentInput> },
+  TContext
+> => {
+  const mutationKey = ["updateAppointment"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateAppointment>>,
+    { id: number; data: BodyType<AppointmentInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateAppointment(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateAppointmentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateAppointment>>
+>;
+export type UpdateAppointmentMutationBody = BodyType<AppointmentInput>;
+export type UpdateAppointmentMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Update an appointment
+ */
+export const useUpdateAppointment = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAppointment>>,
+    TError,
+    { id: number; data: BodyType<AppointmentInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateAppointment>>,
+  TError,
+  { id: number; data: BodyType<AppointmentInput> },
+  TContext
+> => {
+  return useMutation(getUpdateAppointmentMutationOptions(options));
+};
+
+/**
+ * @summary Delete an appointment
+ */
+export const getDeleteAppointmentUrl = (id: number) => {
+  return `/api/appointments/${id}`;
+};
+
+export const deleteAppointment = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteAppointmentUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteAppointmentMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteAppointment>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteAppointment>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteAppointment"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteAppointment>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteAppointment(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteAppointmentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteAppointment>>
+>;
+
+export type DeleteAppointmentMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Delete an appointment
+ */
+export const useDeleteAppointment = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteAppointment>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteAppointment>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteAppointmentMutationOptions(options));
+};
