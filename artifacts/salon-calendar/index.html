@@ -67,22 +67,34 @@
       color: var(--text-mid);
       margin-top: 2px;
     }
-    .header-stats { display: flex; gap: 12px; }
-    .stat-box {
-      background: white;
-      border: 1px solid var(--border);
+    .header-add-btn {
+      background: var(--rose);
+      color: white;
+      border: none;
       border-radius: var(--radius-sm);
-      padding: 8px 14px;
-      text-align: center;
-      min-width: 80px;
+      padding: 0 20px;
+      height: 44px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      white-space: nowrap;
+      display: flex; align-items: center; gap: 6px;
+      transition: background .15s;
+      flex-shrink: 0;
     }
-    .stat-label { font-size: 0.65rem; color: var(--text-light); text-transform: uppercase; letter-spacing: .05em; }
-    .stat-value { font-size: 1.1rem; font-weight: 600; color: var(--rose); }
+    .header-add-btn:hover { background: #9e3f59; }
+    @media (max-width: 420px) {
+      .header-add-btn { padding: 0 14px; font-size: 0.82rem; height: 40px; }
+      .salon-title { font-size: 1.25rem; }
+      header { padding: 14px 16px 12px; }
+      .date-nav { padding: 0 16px; }
+      main { padding: 14px 16px 80px; }
+    }
 
     /* ── Date nav ── */
     .date-nav {
       max-width: 680px;
-      margin: 16px auto 0;
+      margin: 14px auto 0;
       padding: 0 20px;
       display: flex;
       align-items: center;
@@ -94,9 +106,9 @@
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
       color: var(--text-mid);
-      width: 40px; height: 40px;
+      width: 44px; height: 44px;
       display: flex; align-items: center; justify-content: center;
-      cursor: pointer; font-size: 1rem;
+      cursor: pointer; font-size: 1.1rem;
       transition: border-color .15s, color .15s;
       flex-shrink: 0;
     }
@@ -107,7 +119,7 @@
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
       padding: 0 14px;
-      height: 40px;
+      height: 44px;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -120,13 +132,14 @@
     }
     .date-display:hover { border-color: var(--rose-light); }
     .date-display svg { color: var(--rose); flex-shrink: 0; }
+    .date-display span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
     .today-btn {
       background: white;
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
       color: var(--text-mid);
       padding: 0 14px;
-      height: 40px;
+      height: 44px;
       cursor: pointer;
       font-size: 0.82rem;
       font-weight: 500;
@@ -134,22 +147,6 @@
       transition: border-color .15s, color .15s;
     }
     .today-btn:hover { border-color: var(--rose-light); color: var(--rose); }
-    .add-btn {
-      background: var(--rose);
-      color: white;
-      border: none;
-      border-radius: var(--radius-sm);
-      padding: 0 18px;
-      height: 40px;
-      cursor: pointer;
-      font-size: 0.88rem;
-      font-weight: 600;
-      white-space: nowrap;
-      display: flex; align-items: center; gap: 6px;
-      transition: background .15s;
-      flex-shrink: 0;
-    }
-    .add-btn:hover { background: #9e3f59; }
 
     /* ── Custom calendar popup ── */
     .cal-popup {
@@ -475,16 +472,9 @@
       <div class="salon-title">✦ Salon Piękności</div>
       <div class="salon-sub">Kalendarz wizyt</div>
     </div>
-    <div class="header-stats">
-      <div class="stat-box">
-        <div class="stat-label">Przychód dnia</div>
-        <div class="stat-value" id="stat-revenue">0 zł</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-label">Wizyty</div>
-        <div class="stat-value" id="stat-count">0</div>
-      </div>
-    </div>
+    <button class="header-add-btn" id="open-add">
+      <span>+</span> Nowa wizyta
+    </button>
   </div>
 </header>
 
@@ -517,7 +507,6 @@
 
   <button class="today-btn" id="go-today">Dzisiaj</button>
   <button class="nav-btn" id="next-day" title="Następny dzień">&#8250;</button>
-  <button class="add-btn" id="open-add"><span>+</span> Nowa wizyta</button>
 </div>
 
 <main id="appointments-list"></main>
@@ -810,10 +799,12 @@
       .filter(a => a.date === currentDate)
       .sort((a, b) => a.time.localeCompare(b.time));
 
-    const active = day.filter(a => !['cancelled','no_show'].includes(a.status));
-    const rev    = active.reduce((s, a) => s + Number(a.price), 0);
-    document.getElementById('stat-revenue').textContent = fmtPrice(rev);
-    document.getElementById('stat-count').textContent   = day.length;
+    const active  = day.filter(a => !['cancelled','no_show'].includes(a.status));
+    const rev     = active.reduce((s, a) => s + Number(a.price), 0);
+    const revEl   = document.getElementById('stat-revenue');
+    const cntEl   = document.getElementById('stat-count');
+    if (revEl) revEl.textContent = fmtPrice(rev);
+    if (cntEl) cntEl.textContent = day.length;
 
     const list = document.getElementById('appointments-list');
     if (day.length === 0) {
