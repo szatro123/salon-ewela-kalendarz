@@ -25,6 +25,13 @@
       --shadow:     rgba(181, 83, 106, 0.12);
       --radius:     14px;
       --radius-sm:  8px;
+
+      /* Day color palette — soft, elegant */
+      --day-0-bg:   #d6eedc; --day-0-fg: #2d6e47;  /* free → sage green   */
+      --day-1-bg:   #cfe0f5; --day-1-fg: #1a5490;  /* 1    → cornflower   */
+      --day-2-bg:   #f7d6e0; --day-2-fg: #a83355;  /* 2    → blush rose   */
+      --day-3-bg:   #fdf0c2; --day-3-fg: #8a6410;  /* 3    → soft amber   */
+      --day-4-bg:   #f5d0d0; --day-4-fg: #9b2020;  /* 4+   → dusty red    */
     }
 
     body {
@@ -60,10 +67,7 @@
       color: var(--text-mid);
       margin-top: 2px;
     }
-    .header-stats {
-      display: flex;
-      gap: 12px;
-    }
+    .header-stats { display: flex; gap: 12px; }
     .stat-box {
       background: white;
       border: 1px solid var(--border);
@@ -83,6 +87,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
+      position: relative;
     }
     .nav-btn {
       background: white;
@@ -93,6 +98,7 @@
       display: flex; align-items: center; justify-content: center;
       cursor: pointer; font-size: 1rem;
       transition: border-color .15s, color .15s;
+      flex-shrink: 0;
     }
     .nav-btn:hover { border-color: var(--rose-light); color: var(--rose); }
     .date-display {
@@ -109,12 +115,11 @@
       font-size: 0.95rem;
       font-weight: 500;
       color: var(--text-dark);
-      position: relative;
+      user-select: none;
+      transition: border-color .15s;
     }
+    .date-display:hover { border-color: var(--rose-light); }
     .date-display svg { color: var(--rose); flex-shrink: 0; }
-    #date-picker-input {
-      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%;
-    }
     .today-btn {
       background: white;
       border: 1px solid var(--border);
@@ -142,8 +147,117 @@
       white-space: nowrap;
       display: flex; align-items: center; gap: 6px;
       transition: background .15s;
+      flex-shrink: 0;
     }
     .add-btn:hover { background: #9e3f59; }
+
+    /* ── Custom calendar popup ── */
+    .cal-popup {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 20px;
+      right: 20px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 8px 32px rgba(58,32,48,.15);
+      padding: 16px;
+      z-index: 50;
+      animation: fadeDown .18s ease;
+    }
+    .cal-popup.open { display: block; }
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .cal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .cal-month-label {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      color: var(--text-dark);
+      font-weight: 600;
+    }
+    .cal-nav {
+      background: none; border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      width: 30px; height: 30px;
+      cursor: pointer; font-size: 0.9rem;
+      color: var(--text-mid);
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color .12s, color .12s;
+    }
+    .cal-nav:hover { border-color: var(--rose-light); color: var(--rose); }
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+    .cal-dow {
+      text-align: center;
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: var(--text-light);
+      padding: 4px 0;
+      text-transform: uppercase;
+      letter-spacing: .03em;
+    }
+    .cal-day {
+      aspect-ratio: 1;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform .1s, box-shadow .1s;
+      position: relative;
+    }
+    .cal-day:hover { transform: scale(1.1); box-shadow: 0 2px 8px var(--shadow); }
+    .cal-day.empty { cursor: default; pointer-events: none; }
+    /* Color tiers */
+    .cal-day.c0 { background: var(--day-0-bg); color: var(--day-0-fg); }
+    .cal-day.c1 { background: var(--day-1-bg); color: var(--day-1-fg); }
+    .cal-day.c2 { background: var(--day-2-bg); color: var(--day-2-fg); }
+    .cal-day.c3 { background: var(--day-3-bg); color: var(--day-3-fg); }
+    .cal-day.c4 { background: var(--day-4-bg); color: var(--day-4-fg); }
+    /* Today ring */
+    .cal-day.is-today { border-color: var(--rose-light); }
+    /* Selected */
+    .cal-day.is-selected {
+      background: var(--rose) !important;
+      color: white !important;
+      border-color: transparent;
+      font-weight: 700;
+    }
+
+    /* Legend */
+    .cal-legend {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid var(--blush);
+      flex-wrap: wrap;
+    }
+    .leg-item { display: flex; align-items: center; gap: 4px; font-size: 0.68rem; color: var(--text-mid); }
+    .leg-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+    }
+    .leg-dot.c0 { background: var(--day-0-bg); outline: 1px solid var(--day-0-fg); }
+    .leg-dot.c1 { background: var(--day-1-bg); outline: 1px solid var(--day-1-fg); }
+    .leg-dot.c2 { background: var(--day-2-bg); outline: 1px solid var(--day-2-fg); }
+    .leg-dot.c3 { background: var(--day-3-bg); outline: 1px solid var(--day-3-fg); }
+    .leg-dot.c4 { background: var(--day-4-bg); outline: 1px solid var(--day-4-fg); }
 
     /* ── Main content ── */
     main {
@@ -177,10 +291,7 @@
       position: relative;
     }
     .appointment-card:hover { box-shadow: 0 4px 16px var(--shadow); border-color: var(--rose-light); }
-    .time-col {
-      min-width: 52px;
-      text-align: center;
-    }
+    .time-col { min-width: 52px; text-align: center; }
     .appt-time { font-size: 0.95rem; font-weight: 600; color: var(--rose); line-height: 1.2; }
     .appt-duration { font-size: 0.72rem; color: var(--text-light); margin-top: 2px; }
     .card-body { flex: 1; min-width: 0; }
@@ -204,18 +315,14 @@
       padding: 2px 8px; border-radius: 20px;
       text-transform: uppercase; letter-spacing: .04em;
     }
-    .badge-scheduled   { background: #e8f0fe; color: #3b5bdb; }
-    .badge-confirmed   { background: #d3f9d8; color: #2f7d38; }
-    .badge-completed   { background: #f1f3f5; color: #495057; }
-    .badge-cancelled   { background: #fff0f3; color: #c92a2a; }
-    .badge-no_show     { background: #fff3e0; color: #e65100; }
+    .badge-scheduled { background: #e8f0fe; color: #3b5bdb; }
+    .badge-confirmed { background: #d3f9d8; color: #2f7d38; }
+    .badge-completed { background: #f1f3f5; color: #495057; }
+    .badge-cancelled { background: #fff0f3; color: #c92a2a; }
+    .badge-no_show   { background: #fff3e0; color: #e65100; }
 
     /* Card action buttons */
-    .card-actions {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
+    .card-actions { display: flex; flex-direction: column; gap: 4px; }
     .icon-btn {
       background: none; border: none; cursor: pointer;
       width: 32px; height: 32px;
@@ -228,7 +335,7 @@
     .icon-btn:hover { background: var(--blush); color: var(--text-dark); }
     .icon-btn.delete:hover { background: #fff0f3; color: #c92a2a; }
 
-    /* ── Modal ── */
+    /* ── Appointment modal ── */
     .modal-backdrop {
       display: none;
       position: fixed; inset: 0; z-index: 100;
@@ -270,11 +377,7 @@
     .close-btn:hover { background: var(--blush-mid); }
 
     /* Form */
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .form-group { display: flex; flex-direction: column; gap: 5px; }
     .form-group.full { grid-column: 1 / -1; }
     label { font-size: 0.8rem; font-weight: 500; color: var(--text-mid); }
@@ -293,12 +396,7 @@
     input:focus, select:focus, textarea:focus { border-color: var(--rose-light); background: white; }
     textarea { resize: vertical; min-height: 70px; }
     .error-msg { font-size: 0.78rem; color: #c92a2a; margin-top: 2px; }
-
-    /* Form buttons */
-    .form-actions {
-      margin-top: 20px;
-      display: flex; gap: 10px; justify-content: flex-end;
-    }
+    .form-actions { margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end; }
     .btn-cancel {
       background: white; border: 1px solid var(--border);
       color: var(--text-mid); border-radius: var(--radius-sm);
@@ -365,6 +463,7 @@
       .header-stats { gap: 8px; }
       .stat-box { min-width: 68px; padding: 6px 10px; }
       .stat-value { font-size: 0.95rem; }
+      .cal-popup { left: 0; right: 0; border-radius: var(--radius); }
     }
   </style>
 </head>
@@ -391,16 +490,34 @@
 
 <div class="date-nav">
   <button class="nav-btn" id="prev-day" title="Poprzedni dzień">&#8249;</button>
-  <div class="date-display">
-    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+
+  <div class="date-display" id="date-display-btn">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+    </svg>
     <span id="date-label">Dzisiaj</span>
-    <input type="date" id="date-picker-input" title="Wybierz datę" />
   </div>
+
+  <!-- Custom calendar popup -->
+  <div class="cal-popup" id="cal-popup">
+    <div class="cal-header">
+      <button class="cal-nav" id="cal-prev">&#8249;</button>
+      <span class="cal-month-label" id="cal-month-label"></span>
+      <button class="cal-nav" id="cal-next">&#8250;</button>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div class="cal-legend">
+      <div class="leg-item"><div class="leg-dot c0"></div> Wolny</div>
+      <div class="leg-item"><div class="leg-dot c1"></div> 1 wizyta</div>
+      <div class="leg-item"><div class="leg-dot c2"></div> 2 wizyty</div>
+      <div class="leg-item"><div class="leg-dot c3"></div> 3 wizyty</div>
+      <div class="leg-item"><div class="leg-dot c4"></div> 4+</div>
+    </div>
+  </div>
+
   <button class="today-btn" id="go-today">Dzisiaj</button>
   <button class="nav-btn" id="next-day" title="Następny dzień">&#8250;</button>
-  <button class="add-btn" id="open-add">
-    <span>+</span> Nowa wizyta
-  </button>
+  <button class="add-btn" id="open-add"><span>+</span> Nowa wizyta</button>
 </div>
 
 <main id="appointments-list"></main>
@@ -486,7 +603,7 @@
           <textarea id="f-notes" placeholder="Alergie, preferencje, specjalne życzenia…"></textarea>
         </div>
       </div>
-      <div class="error-msg" id="err-booking" style="text-align:center; margin-top:8px; font-size:0.85rem;"></div>
+      <div class="error-msg" id="err-booking" style="text-align:center;margin-top:8px;font-size:0.85rem;"></div>
       <div class="form-actions">
         <button type="button" class="btn-cancel" id="form-cancel">Anuluj</button>
         <button type="submit" class="btn-save" id="form-save">Zapisz wizytę</button>
@@ -513,81 +630,191 @@
 <script>
   // ── Pamięć lokalna ────────────────────────────────────────────────────────
   const STORAGE_KEY = 'salon_appointments_v1';
-
   function loadAll() {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
     catch { return []; }
   }
-  function saveAll(list) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  }
+  function saveAll(list) { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }
 
   // ── Stan aplikacji ────────────────────────────────────────────────────────
-  let currentDate = todayStr();
-  let editingId = null;
-  let deletingId = null;
+  let currentDate  = todayStr();
+  let calViewYear  = new Date().getFullYear();
+  let calViewMonth = new Date().getMonth(); // 0-based
+  let editingId    = null;
+  let deletingId   = null;
+  let calOpen      = false;
 
   function todayStr() {
-    const d = new Date();
-    return d.toISOString().slice(0, 10);
+    return new Date().toISOString().slice(0, 10);
   }
-
   function offsetDate(base, days) {
     const d = new Date(base + 'T00:00:00');
     d.setDate(d.getDate() + days);
     return d.toISOString().slice(0, 10);
   }
+  function isoFromYMD(y, m, d) {
+    return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+  }
 
+  // ── Formatowanie ──────────────────────────────────────────────────────────
   function formatDateLabel(iso) {
     const d = new Date(iso + 'T00:00:00');
     const today = todayStr();
-    const tomorrow = offsetDate(today, 1);
-    const yesterday = offsetDate(today, -1);
-    const opts = { weekday: 'long', day: 'numeric', month: 'long' };
+    const opts  = { weekday: 'long', day: 'numeric', month: 'long' };
     const label = d.toLocaleDateString('pl-PL', opts);
-    if (iso === today) return 'Dzisiaj — ' + label;
-    if (iso === tomorrow) return 'Jutro — ' + label;
-    if (iso === yesterday) return 'Wczoraj — ' + label;
+    if (iso === todayStr())             return 'Dzisiaj — ' + label;
+    if (iso === offsetDate(today,  1))  return 'Jutro — '   + label;
+    if (iso === offsetDate(today, -1))  return 'Wczoraj — ' + label;
     return label;
   }
-
-  function formatTime(t) {
-    return t; // format 24h, standard w Polsce
-  }
-
+  function formatTime(t) { return t; }
   function timeToMins(t) {
     const [h, m] = t.split(':').map(Number);
     return h * 60 + m;
   }
-
   function fmtPrice(p) {
-    const val = Number(p);
-    return val % 1 === 0 ? val + ' zł' : val.toFixed(2).replace('.', ',') + ' zł';
+    const v = Number(p);
+    return (v % 1 === 0 ? v : v.toFixed(2).replace('.', ',')) + ' zł';
   }
-
   function fmtDuration(mins) {
     if (mins < 60) return mins + ' min';
     const h = Math.floor(mins / 60), m = mins % 60;
     return h + ' godz.' + (m ? ' ' + m + ' min' : '');
   }
 
-  // ── Wyświetlanie ──────────────────────────────────────────────────────────
+  // ── Kolory kółek w kalendarzu ─────────────────────────────────────────────
+  function dayColorClass(count) {
+    if (count === 0) return 'c0';
+    if (count === 1) return 'c1';
+    if (count === 2) return 'c2';
+    if (count === 3) return 'c3';
+    return 'c4';
+  }
+
+  // Zlicz wizyty per dzień dla całego miesiąca
+  function countsByDate() {
+    const map = {};
+    for (const a of loadAll()) {
+      map[a.date] = (map[a.date] || 0) + 1;
+    }
+    return map;
+  }
+
+  // ── Popup kalendarza ──────────────────────────────────────────────────────
+  const MONTHS_PL = [
+    'Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec',
+    'Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'
+  ];
+  const DAYS_PL = ['Pn','Wt','Śr','Cz','Pt','So','Nd'];
+
+  function buildCalendar() {
+    const counts  = countsByDate();
+    const today   = todayStr();
+    const year    = calViewYear;
+    const month   = calViewMonth;
+
+    document.getElementById('cal-month-label').textContent =
+      MONTHS_PL[month] + ' ' + year;
+
+    // First day of month (0=Sun … 6=Sat), shift to Mon-first
+    const firstDow = new Date(year, month, 1).getDay(); // 0=Sun
+    const offset   = (firstDow + 6) % 7; // Mon=0 … Sun=6
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const grid = document.getElementById('cal-grid');
+    grid.innerHTML = '';
+
+    // Day-of-week headers
+    DAYS_PL.forEach(d => {
+      const el = document.createElement('div');
+      el.className = 'cal-dow';
+      el.textContent = d;
+      grid.appendChild(el);
+    });
+
+    // Empty cells before day 1
+    for (let i = 0; i < offset; i++) {
+      const el = document.createElement('div');
+      el.className = 'cal-day empty';
+      grid.appendChild(el);
+    }
+
+    // Day cells
+    for (let day = 1; day <= daysInMonth; day++) {
+      const iso   = isoFromYMD(year, month, day);
+      const count = counts[iso] || 0;
+      const el    = document.createElement('div');
+
+      let cls = 'cal-day ' + dayColorClass(count);
+      if (iso === today)       cls += ' is-today';
+      if (iso === currentDate) cls += ' is-selected';
+
+      el.className   = cls;
+      el.textContent = day;
+      el.title       = count === 0 ? 'Brak wizyt' : count + (count === 1 ? ' wizyta' : count < 5 ? ' wizyty' : ' wizyt');
+
+      el.addEventListener('click', () => {
+        currentDate = iso;
+        closeCalendar();
+        render();
+      });
+
+      grid.appendChild(el);
+    }
+  }
+
+  function openCalendar() {
+    const d = new Date(currentDate + 'T00:00:00');
+    calViewYear  = d.getFullYear();
+    calViewMonth = d.getMonth();
+    buildCalendar();
+    document.getElementById('cal-popup').classList.add('open');
+    calOpen = true;
+  }
+  function closeCalendar() {
+    document.getElementById('cal-popup').classList.remove('open');
+    calOpen = false;
+  }
+  function toggleCalendar() {
+    calOpen ? closeCalendar() : openCalendar();
+  }
+
+  document.getElementById('date-display-btn').addEventListener('click', toggleCalendar);
+  document.getElementById('cal-prev').addEventListener('click', e => {
+    e.stopPropagation();
+    calViewMonth--;
+    if (calViewMonth < 0) { calViewMonth = 11; calViewYear--; }
+    buildCalendar();
+  });
+  document.getElementById('cal-next').addEventListener('click', e => {
+    e.stopPropagation();
+    calViewMonth++;
+    if (calViewMonth > 11) { calViewMonth = 0; calViewYear++; }
+    buildCalendar();
+  });
+
+  // Close calendar when clicking outside
+  document.addEventListener('click', e => {
+    if (!calOpen) return;
+    const popup   = document.getElementById('cal-popup');
+    const trigger = document.getElementById('date-display-btn');
+    if (!popup.contains(e.target) && !trigger.contains(e.target)) closeCalendar();
+  });
+
+  // ── Wyświetlanie listy ────────────────────────────────────────────────────
   function render() {
     document.getElementById('date-label').textContent = formatDateLabel(currentDate);
-    document.getElementById('date-picker-input').value = currentDate;
 
     const all = loadAll();
     const day = all
       .filter(a => a.date === currentDate)
       .sort((a, b) => a.time.localeCompare(b.time));
 
-    // Statystyki
-    const active = day.filter(a => !['cancelled', 'no_show'].includes(a.status));
-    const rev = active.reduce((s, a) => s + Number(a.price), 0);
+    const active = day.filter(a => !['cancelled','no_show'].includes(a.status));
+    const rev    = active.reduce((s, a) => s + Number(a.price), 0);
     document.getElementById('stat-revenue').textContent = fmtPrice(rev);
-    document.getElementById('stat-count').textContent = day.length;
+    document.getElementById('stat-count').textContent   = day.length;
 
-    // Lista wizyt
     const list = document.getElementById('appointments-list');
     if (day.length === 0) {
       list.innerHTML = `
@@ -600,11 +827,8 @@
     }
 
     const statusLabels = {
-      scheduled: 'Zaplanowana',
-      confirmed: 'Potwierdzona',
-      completed: 'Zakończona',
-      cancelled: 'Anulowana',
-      no_show:   'Nieobecność'
+      scheduled: 'Zaplanowana', confirmed: 'Potwierdzona',
+      completed: 'Zakończona',  cancelled: 'Anulowana',  no_show: 'Nieobecność'
     };
 
     list.innerHTML = day.map(a => `
@@ -624,64 +848,52 @@
           </div>
         </div>
         <div class="card-actions">
-          <button class="icon-btn edit" data-id="${a.id}" title="Edytuj">✏️</button>
+          <button class="icon-btn edit"   data-id="${a.id}" title="Edytuj">✏️</button>
           <button class="icon-btn delete" data-id="${a.id}" title="Usuń">🗑️</button>
         </div>
-      </div>
-    `).join('');
+      </div>`).join('');
 
-    list.querySelectorAll('.edit').forEach(btn => {
-      btn.addEventListener('click', e => { e.stopPropagation(); openEdit(btn.dataset.id); });
-    });
-    list.querySelectorAll('.delete').forEach(btn => {
-      btn.addEventListener('click', e => { e.stopPropagation(); openDelete(btn.dataset.id); });
-    });
-    list.querySelectorAll('.appointment-card').forEach(card => {
-      card.addEventListener('click', () => openEdit(card.dataset.id));
-    });
+    list.querySelectorAll('.edit').forEach(btn =>
+      btn.addEventListener('click', e => { e.stopPropagation(); openEdit(btn.dataset.id); }));
+    list.querySelectorAll('.delete').forEach(btn =>
+      btn.addEventListener('click', e => { e.stopPropagation(); openDelete(btn.dataset.id); }));
+    list.querySelectorAll('.appointment-card').forEach(card =>
+      card.addEventListener('click', () => openEdit(card.dataset.id)));
   }
 
   function esc(s) {
-    return String(s || '')
+    return String(s||'')
       .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
       .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
   // ── Nawigacja po datach ───────────────────────────────────────────────────
   document.getElementById('prev-day').addEventListener('click', () => {
-    currentDate = offsetDate(currentDate, -1);
-    render();
+    currentDate = offsetDate(currentDate, -1); render();
   });
   document.getElementById('next-day').addEventListener('click', () => {
-    currentDate = offsetDate(currentDate, 1);
-    render();
+    currentDate = offsetDate(currentDate,  1); render();
   });
   document.getElementById('go-today').addEventListener('click', () => {
-    currentDate = todayStr();
-    render();
-  });
-  document.getElementById('date-picker-input').addEventListener('change', e => {
-    if (e.target.value) { currentDate = e.target.value; render(); }
+    currentDate = todayStr(); render();
   });
 
-  // ── Okno modalne ──────────────────────────────────────────────────────────
+  // ── Okno modalne (formularz) ──────────────────────────────────────────────
   function openAdd() {
     editingId = null;
-    document.getElementById('modal-title').textContent = 'Nowa wizyta';
-    document.getElementById('form-save').textContent = 'Zapisz wizytę';
+    document.getElementById('modal-title').textContent  = 'Nowa wizyta';
+    document.getElementById('form-save').textContent    = 'Zapisz wizytę';
     clearForm();
     document.getElementById('f-date').value = currentDate;
     document.getElementById('modal-backdrop').classList.add('open');
     document.getElementById('f-name').focus();
   }
-
   function openEdit(id) {
-    const all = loadAll();
-    const a = all.find(x => x.id === id);
+    const a = loadAll().find(x => x.id === id);
     if (!a) return;
     editingId = id;
     document.getElementById('modal-title').textContent = 'Edytuj wizytę';
-    document.getElementById('form-save').textContent = 'Zaktualizuj wizytę';
+    document.getElementById('form-save').textContent   = 'Zaktualizuj wizytę';
     clearErrors();
     document.getElementById('f-name').value     = a.clientName;
     document.getElementById('f-phone').value    = a.phone;
@@ -695,22 +907,20 @@
     document.getElementById('modal-backdrop').classList.add('open');
     document.getElementById('f-name').focus();
   }
-
   function closeModal() {
     document.getElementById('modal-backdrop').classList.remove('open');
     editingId = null;
   }
-
   function clearForm() {
     document.getElementById('appt-form').reset();
     document.getElementById('f-duration').value = '60';
-    document.getElementById('f-status').value = 'scheduled';
+    document.getElementById('f-status').value   = 'scheduled';
     clearErrors();
   }
-
   function clearErrors() {
-    ['name','phone','service','date','time','price','booking']
-      .forEach(f => { const el = document.getElementById('err-'+f); if(el) el.textContent = ''; });
+    ['name','phone','service','date','time','price','booking'].forEach(f => {
+      const el = document.getElementById('err-'+f); if (el) el.textContent = '';
+    });
   }
 
   document.getElementById('open-add').addEventListener('click', openAdd);
@@ -736,21 +946,20 @@
     const notes    = document.getElementById('f-notes').value.trim();
 
     let valid = true;
-    if (!name)                     { document.getElementById('err-name').textContent = 'Pole wymagane'; valid = false; }
-    if (!phone)                    { document.getElementById('err-phone').textContent = 'Pole wymagane'; valid = false; }
+    if (!name)                     { document.getElementById('err-name').textContent    = 'Pole wymagane'; valid = false; }
+    if (!phone)                    { document.getElementById('err-phone').textContent   = 'Pole wymagane'; valid = false; }
     if (!service)                  { document.getElementById('err-service').textContent = 'Wybierz usługę'; valid = false; }
-    if (!date)                     { document.getElementById('err-date').textContent = 'Pole wymagane'; valid = false; }
-    if (!time)                     { document.getElementById('err-time').textContent = 'Pole wymagane'; valid = false; }
-    if (isNaN(price) || price < 0) { document.getElementById('err-price').textContent = 'Podaj prawidłową cenę'; valid = false; }
+    if (!date)                     { document.getElementById('err-date').textContent    = 'Pole wymagane'; valid = false; }
+    if (!time)                     { document.getElementById('err-time').textContent    = 'Pole wymagane'; valid = false; }
+    if (isNaN(price) || price < 0) { document.getElementById('err-price').textContent  = 'Podaj prawidłową cenę'; valid = false; }
     if (!valid) return;
 
     // Sprawdzenie podwójnej rezerwacji
-    const all = loadAll();
+    const all      = loadAll();
     const newStart = timeToMins(time);
     const newEnd   = newStart + duration;
     const conflict = all.find(a => {
-      if (a.date !== date) return false;
-      if (a.id === editingId) return false;
+      if (a.date !== date || a.id === editingId) return false;
       if (['cancelled','no_show'].includes(a.status)) return false;
       const s = timeToMins(a.time), en = s + Number(a.duration);
       return newStart < en && newEnd > s;
@@ -764,16 +973,15 @@
     if (editingId) {
       const idx = all.findIndex(x => x.id === editingId);
       if (idx !== -1) {
-        all[idx] = { ...all[idx], clientName: name, phone, service, date, time, duration, price, notes, status };
+        all[idx] = { ...all[idx], clientName:name, phone, service, date, time, duration, price, notes, status };
         saveAll(all);
         toast('Wizyta zaktualizowana ✓');
       }
     } else {
-      const appt = {
-        id: 'a' + Date.now() + Math.random().toString(36).slice(2, 6),
+      all.push({
+        id: 'a' + Date.now() + Math.random().toString(36).slice(2,6),
         clientName: name, phone, service, date, time, duration, price, notes, status
-      };
-      all.push(appt);
+      });
       saveAll(all);
       toast('Wizyta zapisana ✓');
     }
@@ -785,29 +993,24 @@
 
   // ── Usuwanie wizyty ───────────────────────────────────────────────────────
   function openDelete(id) {
-    const all = loadAll();
-    const a = all.find(x => x.id === id);
+    const a = loadAll().find(x => x.id === id);
     if (!a) return;
     deletingId = id;
     document.getElementById('delete-confirm-text').textContent =
       `Usunąć wizytę klientki ${a.clientName} (${a.service}) o godz. ${formatTime(a.time)}?`;
     document.getElementById('delete-confirm').classList.add('open');
   }
-
   document.getElementById('delete-cancel').addEventListener('click', () => {
     document.getElementById('delete-confirm').classList.remove('open');
     deletingId = null;
   });
-
   document.getElementById('delete-ok').addEventListener('click', () => {
-    if (deletingId) {
-      const all = loadAll().filter(a => a.id !== deletingId);
-      saveAll(all);
-      toast('Wizyta usunięta');
-      deletingId = null;
-      document.getElementById('delete-confirm').classList.remove('open');
-      render();
-    }
+    if (!deletingId) return;
+    saveAll(loadAll().filter(a => a.id !== deletingId));
+    toast('Wizyta usunięta');
+    deletingId = null;
+    document.getElementById('delete-confirm').classList.remove('open');
+    render();
   });
 
   // ── Powiadomienie ─────────────────────────────────────────────────────────
@@ -815,15 +1018,16 @@
   function toast(msg, isError = false) {
     const el = document.getElementById('toast');
     el.textContent = msg;
-    el.className = 'toast show' + (isError ? ' error' : '');
+    el.className   = 'toast show' + (isError ? ' error' : '');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { el.classList.remove('show'); }, 2600);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
   }
 
   // ── Skróty klawiszowe ─────────────────────────────────────────────────────
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
       closeModal();
+      closeCalendar();
       document.getElementById('delete-confirm').classList.remove('open');
     }
   });
