@@ -1504,6 +1504,27 @@
   });
 
   // ── Zapis formularza ──────────────────────────────────────────────────────
+  // ── SMS API helpers ───────────────────────────────────────────────────────
+  function scheduleSms(appt) {
+    fetch('/api/sms/schedule', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        appointmentId: appt.id,
+        clientName:    appt.clientName,
+        phone:         appt.phone,
+        date:          appt.date,
+        time:          appt.time,
+        duration:      Number(appt.duration),
+      }),
+    }).catch(e => console.warn('[SMS] schedule failed:', e));
+  }
+  function cancelSms(appointmentId) {
+    fetch('/api/sms/cancel/' + encodeURIComponent(appointmentId), {
+      method: 'DELETE',
+    }).catch(e => console.warn('[SMS] cancel failed:', e));
+  }
+
   document.getElementById('appt-form').addEventListener('submit', e => {
     e.preventDefault();
     clearErrors();
@@ -1547,14 +1568,18 @@
       if (idx !== -1) {
         all[idx] = { ...all[idx], clientName:name, phone, service, date, time, duration, notes, status };
         saveAll(all);
+        scheduleSms(all[idx]);
         toast('Wizyta zaktualizowana ✓');
       }
     } else {
-      all.push({
+      const appt = {
         id: 'a' + Date.now() + Math.random().toString(36).slice(2,6),
-        clientName: name, phone, service, date, time, duration, notes, status
-      });
+        clientName: name, phone, service, date, time, duration, notes, status,
+        confirmationSent: false, reminderSent: false,
+      };
+      all.push(appt);
       saveAll(all);
+      scheduleSms(appt);
       toast('Wizyta zapisana ✓');
     }
 
@@ -1578,6 +1603,7 @@
   });
   document.getElementById('delete-ok').addEventListener('click', () => {
     if (!deletingId) return;
+    cancelSms(deletingId);
     saveAll(loadAll().filter(a => a.id !== deletingId));
     toast('Wizyta usunięta');
     deletingId = null;
@@ -1588,6 +1614,7 @@
   document.getElementById('delete-rebook').addEventListener('click', () => {
     if (!deletingId) return;
     const a = loadAll().find(x => x.id === deletingId);
+    cancelSms(deletingId);
     saveAll(loadAll().filter(x => x.id !== deletingId));
     toast('Wizyta usunięta');
     deletingId = null;
