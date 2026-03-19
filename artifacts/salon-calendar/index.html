@@ -425,14 +425,16 @@
     .history-summary {
       background: var(--rose-bg); border-bottom: 1px solid var(--blush);
       padding: 12px 20px; flex-shrink: 0;
+      display: flex; gap: 16px;
     }
     .history-summary:empty { display: none; }
+    .hs-card { flex: 1; min-width: 0; }
     .hs-label {
       font-size: 0.68rem; font-weight: 700; color: var(--rose);
       text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px;
     }
-    .hs-value { font-size: 0.92rem; font-weight: 600; color: var(--text-dark); }
-    .hs-sub { font-size: 0.8rem; color: var(--text-mid); margin-top: 2px; }
+    .hs-value { font-size: 0.88rem; font-weight: 600; color: var(--text-dark); }
+    .hs-sub { font-size: 0.78rem; color: var(--text-mid); margin-top: 2px; }
     .history-list { overflow-y: auto; padding: 8px 16px 16px; flex: 1; }
     .history-item {
       display: flex; justify-content: space-between; align-items: flex-start;
@@ -1723,39 +1725,53 @@
   }
 
   function openClientHistory(clientName) {
+    const today = todayStr();
     const all = loadAll()
-      .filter(a => a.clientName.trim().toLowerCase() === clientName.trim().toLowerCase())
-      .sort((a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time));
+      .filter(a => a.clientName.trim().toLowerCase() === clientName.trim().toLowerCase());
+
+    const past   = all.filter(a => a.date <= today)
+                      .sort((a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time));
+    const future = all.filter(a => a.date > today)
+                      .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+    const allSorted = [...past, ...future.slice().reverse()];
 
     document.getElementById('history-title').textContent = clientName;
 
-    const n = all.length;
-    document.getElementById('history-subtitle').textContent =
-      n === 0 ? '' : n >= 3 ? `Stała klientka (${fmtVisits(n)})` : fmtVisits(n);
+    const subtitleParts = [];
+    if (past.length > 0)   subtitleParts.push(`Odbyte: ${past.length}`);
+    if (future.length > 0) subtitleParts.push(`Nadchodzące: ${future.length}`);
+    document.getElementById('history-subtitle').textContent = subtitleParts.join(' · ');
+
+    const fmtDate = iso => new Date(iso + 'T00:00:00')
+      .toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
 
     const summaryEl = document.getElementById('history-summary');
-    if (n === 0) {
-      summaryEl.innerHTML = '';
-    } else {
-      const last = all[0];
-      const d = new Date(last.date + 'T00:00:00');
-      const dateStr = d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
-      summaryEl.innerHTML = `
+    const lastVisit = past[0]   || null;
+    const nextVisit = future[0] || null;
+    let summaryHtml = '';
+    if (lastVisit) summaryHtml += `
+      <div class="hs-card">
         <div class="hs-label">Ostatnia wizyta</div>
-        <div class="hs-value">${dateStr} · ${last.time}</div>
-        <div class="hs-sub">${esc(last.service)} · ${fmtDuration(Number(last.duration))}</div>`;
-    }
+        <div class="hs-value">${fmtDate(lastVisit.date)} · ${lastVisit.time}</div>
+        <div class="hs-sub">${esc(lastVisit.service)} · ${fmtDuration(Number(lastVisit.duration))}</div>
+      </div>`;
+    if (nextVisit) summaryHtml += `
+      <div class="hs-card">
+        <div class="hs-label">Następna wizyta</div>
+        <div class="hs-value">${fmtDate(nextVisit.date)} · ${nextVisit.time}</div>
+        <div class="hs-sub">${esc(nextVisit.service)} · ${fmtDuration(Number(nextVisit.duration))}</div>
+      </div>`;
+    summaryEl.innerHTML = summaryHtml;
 
     const listEl = document.getElementById('history-list');
-    if (n === 0) {
+    if (allSorted.length === 0) {
       listEl.innerHTML = '<div class="history-empty">Brak wizyt dla tej klientki.</div>';
     } else {
-      listEl.innerHTML = all.map(a => {
-        const d = new Date(a.date + 'T00:00:00');
-        const dateStr = d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
+      listEl.innerHTML = allSorted.map(a => {
+        const isFuture = a.date > today;
         return `<div class="history-item">
           <div class="hi-content">
-            <div class="hi-date">${dateStr} · ${a.time}</div>
+            <div class="hi-date">${fmtDate(a.date)} · ${a.time}${isFuture ? ' 🔜' : ''}</div>
             <div class="hi-service">${esc(a.service)} · ${fmtDuration(Number(a.duration))} · ${statusLabelsHist[a.status] || a.status}</div>
             ${a.notes ? `<div class="hi-notes">📝 ${esc(a.notes)}</div>` : ''}
           </div>
