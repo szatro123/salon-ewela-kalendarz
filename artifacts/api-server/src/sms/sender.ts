@@ -7,6 +7,17 @@
 const SMSPLANET_URL = "https://api2.smsplanet.pl/sms";
 const SENDER        = "TEST";
 
+function isValidPolishPhone(raw: string): boolean {
+  // Allow only an optional leading + followed by digits — no letters or other chars
+  if (!/^\+?\d+$/.test(raw)) return false;
+  const digits = raw.replace(/^\+/, "");
+  // 9 bare digits  →  local Polish number
+  if (digits.length === 9) return true;
+  // 11 digits starting with 48  →  +48XXXXXXXXX
+  if (digits.length === 11 && digits.startsWith("48")) return true;
+  return false;
+}
+
 export function normalizePhone(raw: string): string {
   let p = raw.replace(/[\s\-]/g, "").replace(/^\+/, "");
   if (p.length === 9) p = "48" + p;
@@ -20,6 +31,12 @@ export async function sendSms(opts: {
   message: string;
 }): Promise<void> {
   const { appointmentId, type, rawPhone, message } = opts;
+
+  if (!isValidPolishPhone(rawPhone)) {
+    console.log(`[SMS] Invalid phone "${rawPhone}" — SMS skipped (${type}, appt: ${appointmentId})`);
+    return;
+  }
+
   const normalizedPhone = normalizePhone(rawPhone);
 
   const token = process.env.SMSPLANET_TOKEN;
