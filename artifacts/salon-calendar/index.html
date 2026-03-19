@@ -148,6 +148,83 @@
     }
     .today-btn:hover { border-color: var(--rose-light); color: var(--rose); }
 
+    /* ── Custom time picker ── */
+    .time-picker-wrap { position: relative; }
+    .time-btn {
+      width: 100%;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0 12px;
+      height: 42px;
+      display: flex; align-items: center; gap: 8px;
+      cursor: pointer;
+      font-size: 0.92rem;
+      color: var(--text-dark);
+      font-family: 'Inter', sans-serif;
+      text-align: left;
+      transition: border-color .15s;
+    }
+    .time-btn:hover { border-color: var(--rose-light); }
+    .time-btn svg { color: var(--rose); flex-shrink: 0; }
+    .tb-placeholder { color: var(--text-light); }
+    .time-popup {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0; right: 0;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 8px 32px rgba(58,32,48,.15);
+      padding: 14px;
+      z-index: 60;
+      animation: fadeDown .18s ease;
+    }
+    .time-popup.open { display: block; }
+    .time-slot-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .time-slot {
+      padding: 8px 4px;
+      border-radius: var(--radius-sm);
+      border: 2px solid transparent;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: center;
+      transition: transform .1s, box-shadow .1s;
+      user-select: none;
+    }
+    .time-slot:hover { transform: scale(1.07); box-shadow: 0 2px 6px var(--shadow); }
+    .time-slot.ts-free { background: var(--day-1-bg); color: var(--day-1-fg); }
+    .time-slot.ts-busy { background: var(--day-4-bg); color: var(--day-4-fg); }
+    .time-slot.ts-selected { border-color: var(--rose); font-weight: 700; box-shadow: 0 2px 8px var(--shadow); }
+    .time-popup-msg {
+      font-size: 0.8rem;
+      color: var(--day-4-fg);
+      text-align: center;
+      min-height: 16px;
+      margin-bottom: 8px;
+    }
+    .time-popup-footer { display: flex; justify-content: flex-end; }
+    .time-set-btn {
+      background: var(--rose);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 0 22px;
+      height: 36px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .time-set-btn:hover { background: #9e3f59; }
+
     /* ── Custom calendar popup ── */
     .cal-popup {
       display: none;
@@ -555,8 +632,23 @@
           <div class="error-msg" id="err-date"></div>
         </div>
         <div class="form-group">
-          <label for="f-time">Godzina *</label>
-          <input type="time" id="f-time" />
+          <label>Godzina *</label>
+          <div class="time-picker-wrap">
+            <button type="button" class="time-btn" id="time-btn">
+              <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+              </svg>
+              <span id="time-btn-label" class="tb-placeholder">Wybierz godzinę</span>
+            </button>
+            <input type="hidden" id="f-time" />
+            <div class="time-popup" id="time-popup">
+              <div class="time-slot-grid" id="time-slot-grid"></div>
+              <div class="time-popup-msg" id="time-popup-msg"></div>
+              <div class="time-popup-footer">
+                <button type="button" class="time-set-btn" id="time-set-btn">Ustaw</button>
+              </div>
+            </div>
+          </div>
           <div class="error-msg" id="err-time"></div>
         </div>
         <div class="form-group">
@@ -854,6 +946,93 @@
     currentDate = todayStr(); render();
   });
 
+  // ── Custom Time Picker ────────────────────────────────────────────────────
+  const TIME_SLOTS = [];
+  for (let h = 8; h <= 20; h++) {
+    TIME_SLOTS.push(String(h).padStart(2,'0') + ':00');
+    if (h < 20) TIME_SLOTS.push(String(h).padStart(2,'0') + ':30');
+  }
+  let selectedTimeValue = '';
+
+  function getOccupiedSlots() {
+    const date = document.getElementById('f-date').value;
+    if (!date) return new Set();
+    const duration = parseInt(document.getElementById('f-duration').value, 10) || 60;
+    const active = loadAll().filter(a =>
+      a.date === date &&
+      !['cancelled','no_show'].includes(a.status) &&
+      a.id !== editingId
+    );
+    const occupied = new Set();
+    TIME_SLOTS.forEach(slot => {
+      const slotStart = timeToMins(slot);
+      const slotEnd   = slotStart + duration;
+      const hasConflict = active.some(a => {
+        const aStart = timeToMins(a.time);
+        const aEnd   = aStart + Number(a.duration);
+        return slotStart < aEnd && slotEnd > aStart;
+      });
+      if (hasConflict) occupied.add(slot);
+    });
+    return occupied;
+  }
+
+  function renderTimeSlots() {
+    const occupied = getOccupiedSlots();
+    document.getElementById('time-slot-grid').innerHTML = TIME_SLOTS.map(t => {
+      const isBusy = occupied.has(t);
+      const isSel  = t === selectedTimeValue;
+      return `<div class="time-slot ${isBusy ? 'ts-busy' : 'ts-free'}${isSel ? ' ts-selected' : ''}" data-time="${t}">${t}</div>`;
+    }).join('');
+    const msg = document.getElementById('time-popup-msg');
+    msg.textContent = (selectedTimeValue && occupied.has(selectedTimeValue))
+      ? 'Ta godzina jest już zajęta' : '';
+  }
+
+  function setTimeValue(val) {
+    selectedTimeValue = val;
+    document.getElementById('f-time').value = val;
+    const lbl = document.getElementById('time-btn-label');
+    if (val) {
+      lbl.textContent = val;
+      lbl.classList.remove('tb-placeholder');
+    } else {
+      lbl.textContent = 'Wybierz godzinę';
+      lbl.classList.add('tb-placeholder');
+    }
+  }
+
+  function openTimePicker() {
+    renderTimeSlots();
+    document.getElementById('time-popup').classList.add('open');
+  }
+  function closeTimePicker() {
+    document.getElementById('time-popup').classList.remove('open');
+  }
+
+  document.getElementById('time-btn').addEventListener('click', () => {
+    const popup = document.getElementById('time-popup');
+    if (popup.classList.contains('open')) closeTimePicker();
+    else openTimePicker();
+  });
+
+  document.getElementById('time-slot-grid').addEventListener('click', e => {
+    const slot = e.target.closest('.time-slot');
+    if (!slot) return;
+    setTimeValue(slot.dataset.time);
+    renderTimeSlots();
+  });
+
+  document.getElementById('time-set-btn').addEventListener('click', closeTimePicker);
+
+  document.getElementById('f-date').addEventListener('change', renderTimeSlots);
+  document.getElementById('f-duration').addEventListener('change', renderTimeSlots);
+
+  document.addEventListener('click', e => {
+    if (!document.getElementById('time-popup').classList.contains('open')) return;
+    if (!e.target.closest('.time-picker-wrap')) closeTimePicker();
+  });
+
   // ── Okno modalne (formularz) ──────────────────────────────────────────────
   function openAdd() {
     editingId = null;
@@ -875,7 +1054,7 @@
     document.getElementById('f-phone').value    = a.phone;
     document.getElementById('f-service').value  = a.service;
     document.getElementById('f-date').value     = a.date;
-    document.getElementById('f-time').value     = a.time;
+    setTimeValue(a.time);
     document.getElementById('f-duration').value = String(a.duration);
     document.getElementById('f-status').value   = a.status;
     document.getElementById('f-notes').value    = a.notes || '';
@@ -890,6 +1069,7 @@
     document.getElementById('appt-form').reset();
     document.getElementById('f-duration').value = '60';
     document.getElementById('f-status').value   = 'scheduled';
+    setTimeValue('');
     clearErrors();
   }
   function clearErrors() {
