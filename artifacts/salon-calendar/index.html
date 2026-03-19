@@ -304,11 +304,10 @@
     .cal-day.c4 { background: var(--day-4-bg); color: var(--day-4-fg); }
     /* Today ring */
     .cal-day.is-today { border-color: var(--rose-light); }
-    /* Selected */
+    /* Selected — keep load color, add rose ring */
     .cal-day.is-selected {
-      background: var(--rose) !important;
-      color: white !important;
-      border-color: transparent;
+      border-color: var(--rose);
+      box-shadow: 0 0 0 2px var(--rose-light);
       font-weight: 700;
     }
 
