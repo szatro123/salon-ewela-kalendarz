@@ -497,14 +497,25 @@
     .hi-notes { font-size: 0.78rem; color: var(--text-light); margin-top: 2px; }
     .history-item.past .hi-date { color: var(--day-0-fg); }
     .hs-card.hs-past .hs-value { color: var(--day-0-fg); }
-    .btn-hi-rebook {
+    .history-item.future { cursor: pointer; flex-direction: column; gap: 0; }
+    .history-item.future:hover .hi-date { color: var(--rose); }
+    .hi-main { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; }
+    .hi-chevron {
+      color: var(--rose-light); font-size: 1.1rem; line-height: 1;
+      padding-top: 2px; flex-shrink: 0;
+      transition: transform .2s;
+    }
+    .history-item.future.active .hi-chevron { transform: rotate(90deg); }
+    .hi-actions { display: none; padding: 8px 0 4px; gap: 6px; flex-direction: column; width: 100%; }
+    .history-item.future.active .hi-actions { display: flex; }
+    .btn-hi-action {
       background: white; color: var(--rose);
       border: 1px solid var(--rose-light); border-radius: var(--radius-sm);
-      padding: 5px 10px; font-size: 0.76rem; font-weight: 600;
-      cursor: pointer; white-space: nowrap; flex-shrink: 0;
+      padding: 8px 12px; font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; text-align: left; width: 100%;
       transition: background .15s, color .15s;
     }
-    .btn-hi-rebook:hover { background: var(--rose); color: white; }
+    .btn-hi-action:hover { background: var(--rose); color: white; }
     .history-empty {
       text-align: center; color: var(--text-light);
       padding: 28px 0; font-size: 0.88rem;
@@ -1933,13 +1944,23 @@
       listEl.innerHTML = allSorted.map(a => {
         const isPast   = apptIsPast(a);
         const isFuture = apptIsFuture(a);
-        return `<div class="history-item${isPast ? ' past' : ''}">
+        const content  = `
           <div class="hi-content">
             <div class="hi-date">${fmtDate(a.date)} · ${a.time}${isFuture ? ' 🔜' : ''}</div>
             <div class="hi-service">${esc(a.service)} · ${fmtDuration(Number(a.duration))} · ${displayStatus(a)}</div>
             ${a.notes ? `<div class="hi-notes">📝 ${esc(a.notes)}</div>` : ''}
-          </div>
-          <button class="btn-hi-rebook" data-id="${esc(a.id)}">Umów ponownie</button>
+          </div>`;
+        if (isFuture) {
+          return `<div class="history-item future" data-id="${esc(a.id)}">
+            <div class="hi-main">${content}<span class="hi-chevron">›</span></div>
+            <div class="hi-actions">
+              <button class="btn-hi-action btn-hi-delete" data-id="${esc(a.id)}">Usuń</button>
+              <button class="btn-hi-action btn-hi-rebook-new" data-id="${esc(a.id)}">Usuń i umów nowy termin</button>
+            </div>
+          </div>`;
+        }
+        return `<div class="history-item${isPast ? ' past' : ''}">
+          <div class="hi-main">${content}</div>
         </div>`;
       }).join('');
     }
@@ -1957,25 +1978,52 @@
   });
 
   document.getElementById('history-list').addEventListener('click', e => {
-    const btn = e.target.closest('.btn-hi-rebook');
-    if (!btn) return;
-    const a = loadAll().find(x => x.id === btn.dataset.id);
-    if (!a) return;
-    closeClientHistory();
-    editingId = null;
-    document.getElementById('modal-title').textContent = 'Nowa wizyta';
-    document.getElementById('form-save').textContent   = 'Zapisz wizytę';
-    clearErrors();
-    document.getElementById('f-name').value     = a.clientName;
-    document.getElementById('f-phone').value    = a.phone;
-    document.getElementById('f-service').value  = a.service;
-    setFormDate('');
-    setTimeValue('');
-    document.getElementById('f-duration').value = String(a.duration);
-    document.getElementById('f-status').value   = 'scheduled';
-    document.getElementById('f-notes').value    = a.notes || '';
-    document.getElementById('modal-backdrop').classList.add('open');
-    setTimeout(() => openFormCalendar(), 80);
+    // ── "Usuń" ────────────────────────────────────────────────────────────────
+    const delBtn = e.target.closest('.btn-hi-delete');
+    if (delBtn) {
+      e.stopPropagation();
+      const id = delBtn.dataset.id;
+      cancelSms(id);
+      saveAll(loadAll().filter(a => a.id !== id));
+      render();
+      openClientHistory(document.getElementById('history-title').textContent);
+      return;
+    }
+
+    // ── "Usuń i umów nowy termin" ─────────────────────────────────────────────
+    const rebookBtn = e.target.closest('.btn-hi-rebook-new');
+    if (rebookBtn) {
+      e.stopPropagation();
+      const id = rebookBtn.dataset.id;
+      const a  = loadAll().find(x => x.id === id);
+      if (!a) return;
+      cancelSms(id);
+      saveAll(loadAll().filter(x => x.id !== id));
+      render();
+      closeClientHistory();
+      editingId = null;
+      document.getElementById('modal-title').textContent = 'Nowa wizyta';
+      document.getElementById('form-save').textContent   = 'Zapisz wizytę';
+      clearErrors();
+      document.getElementById('f-name').value     = a.clientName;
+      document.getElementById('f-phone').value    = a.phone;
+      document.getElementById('f-service').value  = a.service;
+      setFormDate('');
+      setTimeValue('');
+      document.getElementById('f-duration').value = String(a.duration);
+      document.getElementById('f-status').value   = 'scheduled';
+      document.getElementById('f-notes').value    = '';
+      document.getElementById('modal-backdrop').classList.add('open');
+      setTimeout(() => openFormCalendar(), 80);
+      return;
+    }
+
+    // ── Toggle action row on upcoming items ───────────────────────────────────
+    const item = e.target.closest('.history-item.future');
+    if (!item) return;
+    document.querySelectorAll('#history-list .history-item.future.active')
+      .forEach(el => { if (el !== item) el.classList.remove('active'); });
+    item.classList.toggle('active');
   });
 
   // ── Skróty klawiszowe ─────────────────────────────────────────────────────
