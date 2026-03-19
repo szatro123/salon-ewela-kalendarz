@@ -311,6 +311,23 @@
       font-weight: 700;
     }
 
+    /* ── Form calendar popup (fixed, above modal) ── */
+    .fcal-wrap { position: relative; }
+    .fcal-popup {
+      display: none;
+      position: fixed;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 8px 32px rgba(58,32,48,.2);
+      padding: 16px;
+      z-index: 150;
+      animation: fadeDown .18s ease;
+      max-height: calc(100vh - 80px);
+      overflow-y: auto;
+    }
+    .fcal-popup.open { display: block; }
+
     /* Legend */
     .cal-legend {
       display: flex;
@@ -665,8 +682,16 @@
           <div class="error-msg" id="err-service"></div>
         </div>
         <div class="form-group">
-          <label for="f-date">Data *</label>
-          <input type="date" id="f-date" />
+          <label>Data *</label>
+          <div class="fcal-wrap">
+            <button type="button" class="time-btn" id="fcal-btn">
+              <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+              </svg>
+              <span id="fcal-btn-label" class="tb-placeholder">Wybierz datę</span>
+            </button>
+            <input type="hidden" id="f-date" />
+          </div>
           <div class="error-msg" id="err-date"></div>
         </div>
         <div class="form-group">
@@ -725,6 +750,23 @@
   </div>
 </div>
 
+<!-- Form calendar popup (fixed, above modal) -->
+<div class="fcal-popup" id="fcal-popup">
+  <div class="cal-header">
+    <button class="cal-nav" id="fcal-prev">&#8249;</button>
+    <span class="cal-month-label" id="fcal-month-label"></span>
+    <button class="cal-nav" id="fcal-next">&#8250;</button>
+  </div>
+  <div class="cal-grid" id="fcal-grid"></div>
+  <div class="cal-legend">
+    <div class="leg-item"><div class="leg-dot c0"></div> Wolny</div>
+    <div class="leg-item"><div class="leg-dot c1"></div> 1 wizyta</div>
+    <div class="leg-item"><div class="leg-dot c2"></div> 2 wizyty</div>
+    <div class="leg-item"><div class="leg-dot c3"></div> 3 wizyty</div>
+    <div class="leg-item"><div class="leg-dot c4"></div> 4+</div>
+  </div>
+</div>
+
 <!-- Popup: Umów ponownie -->
 <div id="rebook-popup" class="rebook-popup">
   <button class="rebook-option" id="rebook-3w">📅 Umów za 3 tygodnie</button>
@@ -765,6 +807,10 @@
   let editingId    = null;
   let deletingId   = null;
   let calOpen      = false;
+  let fcalViewYear  = new Date().getFullYear();
+  let fcalViewMonth = new Date().getMonth();
+  let fcalOpen      = false;
+  let formSelectedDate = '';
 
   function todayStr() {
     return new Date().toISOString().slice(0, 10);
@@ -896,6 +942,116 @@
   function toggleCalendar() {
     calOpen ? closeCalendar() : openCalendar();
   }
+
+  // ── Form date picker calendar ─────────────────────────────────────────────
+  function setFormDate(iso) {
+    formSelectedDate = iso;
+    document.getElementById('f-date').value = iso;
+    const lbl = document.getElementById('fcal-btn-label');
+    if (iso) {
+      const d    = new Date(iso + 'T00:00:00');
+      const opts = { day: 'numeric', month: 'long', year: 'numeric' };
+      lbl.textContent = d.toLocaleDateString('pl-PL', opts);
+      lbl.classList.remove('tb-placeholder');
+    } else {
+      lbl.textContent = 'Wybierz datę';
+      lbl.classList.add('tb-placeholder');
+    }
+    renderTimeSlots();
+  }
+
+  function buildFormCalendar() {
+    const counts      = countsByDate();
+    const today       = todayStr();
+    const year        = fcalViewYear;
+    const month       = fcalViewMonth;
+
+    document.getElementById('fcal-month-label').textContent = MONTHS_PL[month] + ' ' + year;
+
+    const firstDow    = new Date(year, month, 1).getDay();
+    const offset      = (firstDow + 6) % 7;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const grid = document.getElementById('fcal-grid');
+    grid.innerHTML = '';
+
+    DAYS_PL.forEach(d => {
+      const el = document.createElement('div');
+      el.className = 'cal-dow';
+      el.textContent = d;
+      grid.appendChild(el);
+    });
+    for (let i = 0; i < offset; i++) {
+      const el = document.createElement('div');
+      el.className = 'cal-day empty';
+      grid.appendChild(el);
+    }
+    for (let day = 1; day <= daysInMonth; day++) {
+      const iso   = isoFromYMD(year, month, day);
+      const count = counts[iso] || 0;
+      const el    = document.createElement('div');
+
+      let cls = 'cal-day ' + dayColorClass(count);
+      if (iso === today)           cls += ' is-today';
+      if (iso === formSelectedDate) cls += ' is-selected';
+
+      el.className   = cls;
+      el.textContent = day;
+      el.title       = count === 0 ? 'Brak wizyt' : count + (count === 1 ? ' wizyta' : count < 5 ? ' wizyty' : ' wizyt');
+
+      el.addEventListener('click', () => {
+        setFormDate(iso);
+        closeFormCalendar();
+      });
+      grid.appendChild(el);
+    }
+  }
+
+  function openFormCalendar() {
+    const cur = formSelectedDate || todayStr();
+    const d   = new Date(cur + 'T00:00:00');
+    fcalViewYear  = d.getFullYear();
+    fcalViewMonth = d.getMonth();
+    buildFormCalendar();
+
+    const popup = document.getElementById('fcal-popup');
+    const btn   = document.getElementById('fcal-btn');
+    const rect  = btn.getBoundingClientRect();
+    const pw    = Math.min(340, window.innerWidth - 32);
+    const left  = Math.max(16, Math.min(rect.left, window.innerWidth - pw - 16));
+    let   top   = rect.bottom + 6;
+    if (top + 420 > window.innerHeight) top = Math.max(16, rect.top - 426);
+    popup.style.width = pw + 'px';
+    popup.style.left  = left + 'px';
+    popup.style.top   = top + 'px';
+    popup.classList.add('open');
+    fcalOpen = true;
+  }
+
+  function closeFormCalendar() {
+    document.getElementById('fcal-popup').classList.remove('open');
+    fcalOpen = false;
+  }
+
+  document.getElementById('fcal-btn').addEventListener('click', () => {
+    fcalOpen ? closeFormCalendar() : openFormCalendar();
+  });
+  document.getElementById('fcal-prev').addEventListener('click', e => {
+    e.stopPropagation();
+    fcalViewMonth--;
+    if (fcalViewMonth < 0) { fcalViewMonth = 11; fcalViewYear--; }
+    buildFormCalendar();
+  });
+  document.getElementById('fcal-next').addEventListener('click', e => {
+    e.stopPropagation();
+    fcalViewMonth++;
+    if (fcalViewMonth > 11) { fcalViewMonth = 0; fcalViewYear++; }
+    buildFormCalendar();
+  });
+  document.addEventListener('click', e => {
+    if (!fcalOpen) return;
+    if (!e.target.closest('#fcal-popup') && !e.target.closest('#fcal-btn')) closeFormCalendar();
+  });
 
   document.getElementById('date-display-btn').addEventListener('click', toggleCalendar);
   document.getElementById('cal-prev').addEventListener('click', e => {
@@ -1075,7 +1231,6 @@
 
   document.getElementById('time-set-btn').addEventListener('click', closeTimePicker);
 
-  document.getElementById('f-date').addEventListener('change', renderTimeSlots);
   document.getElementById('f-duration').addEventListener('change', renderTimeSlots);
 
   document.addEventListener('click', e => {
@@ -1089,7 +1244,7 @@
     document.getElementById('modal-title').textContent  = 'Nowa wizyta';
     document.getElementById('form-save').textContent    = 'Zapisz wizytę';
     clearForm();
-    document.getElementById('f-date').value = currentDate;
+    setFormDate(currentDate);
     document.getElementById('modal-backdrop').classList.add('open');
     document.getElementById('f-name').focus();
   }
@@ -1103,7 +1258,7 @@
     document.getElementById('f-name').value     = a.clientName;
     document.getElementById('f-phone').value    = a.phone;
     document.getElementById('f-service').value  = a.service;
-    document.getElementById('f-date').value     = a.date;
+    setFormDate(a.date);
     setTimeValue(a.time);
     document.getElementById('f-duration').value = String(a.duration);
     document.getElementById('f-status').value   = a.status;
@@ -1113,12 +1268,14 @@
   }
   function closeModal() {
     document.getElementById('modal-backdrop').classList.remove('open');
+    closeFormCalendar();
     editingId = null;
   }
   function clearForm() {
     document.getElementById('appt-form').reset();
     document.getElementById('f-duration').value = '60';
     document.getElementById('f-status').value   = 'scheduled';
+    setFormDate('');
     setTimeValue('');
     clearErrors();
   }
@@ -1313,7 +1470,7 @@
     document.getElementById('f-name').value     = a.clientName;
     document.getElementById('f-phone').value    = a.phone;
     document.getElementById('f-service').value  = a.service;
-    document.getElementById('f-date').value     = '';
+    setFormDate('');
     setTimeValue('');
     document.getElementById('f-duration').value = String(a.duration);
     document.getElementById('f-status').value   = 'scheduled';
@@ -1330,6 +1487,7 @@
   // ── Skróty klawiszowe ─────────────────────────────────────────────────────
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
+      closeFormCalendar();
       closeModal();
       closeCalendar();
       closeRebook();
