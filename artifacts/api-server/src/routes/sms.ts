@@ -4,9 +4,7 @@ import { eq } from "drizzle-orm";
 
 const router: IRouter = Router();
 
-// Confirmation delay — change for testing:
-// const CONFIRM_DELAY_MS = 1 * 60 * 1000;  // 1 minute (testing)
-const CONFIRM_DELAY_MS = 15 * 60 * 1000;    // 15 minutes (production)
+const CONFIRM_DELAY_MS = 1 * 60 * 1000;     // 1 minute
 
 router.post("/schedule", async (req: Request, res: Response) => {
   const { appointmentId, clientName, phone, service, date, time, duration } = req.body ?? {};
