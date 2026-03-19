@@ -2,6 +2,8 @@ import { Router, type IRouter, type Request, type Response } from "express";
 
 const router: IRouter = Router();
 
+const SMSPLANET_URL = "https://api2.smsplanet.pl/sms";
+
 function normalizePhone(raw: string): string {
   let p = raw.replace(/[\s\-]/g, "").replace(/^\+/, "");
   if (p.length === 9) p = "48" + p;
@@ -16,40 +18,46 @@ router.post("/", async (req: Request, res: Response) => {
     return;
   }
 
+  // ── Token check ────────────────────────────────────────────────────────────
   const token = process.env.SMSPLANET_TOKEN;
+  console.log("[SMSPlanet] token present :", token ? "YES (" + token.length + " chars)" : "NO — SMSPLANET_TOKEN not set");
   if (!token) {
-    res.status(500).json({ error: "SMSPLANET_TOKEN not set" });
+    res.status(500).json({ ok: false, error: "SMSPLANET_TOKEN not set in environment" });
     return;
   }
 
-  const rawPhone = phone;
+  // ── Phone normalisation ────────────────────────────────────────────────────
+  const rawPhone        = phone;
   const normalizedPhone = normalizePhone(rawPhone);
 
+  // ── Request body (token goes in Authorization header only) ─────────────────
   const requestBody = {
-    token,
-    to: normalizedPhone,
-    message,
-    sender: "TEST",
+    from:    "TEST",
+    to:      normalizedPhone,
+    message: message,
   };
 
+  console.log("[SMSPlanet] endpoint URL  :", SMSPLANET_URL);
   console.log("[SMSPlanet] raw phone     :", rawPhone);
   console.log("[SMSPlanet] normalized    :", normalizedPhone);
-  console.log("[SMSPlanet] request body  :", JSON.stringify({ ...requestBody, token: "***" }));
+  console.log("[SMSPlanet] sender (from) :", requestBody.from);
+  console.log("[SMSPlanet] message       :", message);
+  console.log("[SMSPlanet] request body  :", JSON.stringify(requestBody));
 
   let httpStatus: number | null = null;
-  let responseBody: string | null = null;
+  let responseBody              = "";
 
   try {
-    const apiRes = await fetch("https://api2.smsplanet.pl/sms", {
-      method: "POST",
+    const apiRes = await fetch(SMSPLANET_URL, {
+      method:  "POST",
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        "Content-Type":  "application/json",
+        "Authorization": `Bearer ${token}`,
       },
       body: JSON.stringify(requestBody),
     });
 
-    httpStatus = apiRes.status;
+    httpStatus   = apiRes.status;
     responseBody = await apiRes.text();
 
     console.log("[SMSPlanet] HTTP status   :", httpStatus);
@@ -58,11 +66,24 @@ router.post("/", async (req: Request, res: Response) => {
     let parsed: unknown;
     try { parsed = JSON.parse(responseBody); } catch { parsed = responseBody; }
 
-    res.json({ ok: apiRes.ok, normalizedPhone, httpStatus, response: parsed });
+    res.json({
+      ok:              apiRes.ok,
+      normalizedPhone,
+      httpStatus,
+      responseRaw:     responseBody,
+      response:        parsed,
+    });
+
   } catch (err) {
     const errText = err instanceof Error ? err.message : String(err);
     console.error("[SMSPlanet] thrown error  :", errText);
-    res.status(500).json({ ok: false, normalizedPhone, httpStatus, responseBody, error: errText });
+    res.status(500).json({
+      ok:              false,
+      normalizedPhone,
+      httpStatus,
+      responseRaw:     responseBody,
+      error:           errText,
+    });
   }
 });
 

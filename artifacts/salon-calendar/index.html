@@ -792,8 +792,8 @@
     .smsplanet-result {
       flex: 1; min-width: 200px; white-space: pre-wrap; word-break: break-all;
       font-size: 0.78rem; line-height: 1.4;
-      padding: 4px 8px; background: #111122; border-radius: 4px;
-      max-height: 80px; overflow-y: auto;
+      padding: 6px 10px; background: #111122; border-radius: 4px;
+      max-height: 160px; overflow-y: auto;
     }
     .smsplanet-result.ok  { color: #5af078; }
     .smsplanet-result.err { color: #f07878; }
@@ -2041,16 +2041,19 @@
         })
       });
       const data = await res.json();
-      const summary = [
-        'HTTP: ' + (data.httpStatus ?? res.status),
-        'Tel: '  + (data.normalizedPhone ?? phone),
-        'OK: '   + data.ok,
-        'Resp: ' + JSON.stringify(data.response ?? data.error),
-      ].join('\n');
-      result.textContent = summary;
+      const lines = [
+        '─── WYNIK ───────────────────────',
+        'HTTP status : ' + (data.httpStatus ?? res.status),
+        'Tel (norm)  : ' + (data.normalizedPhone ?? phone),
+        'OK          : ' + data.ok,
+        '─── PEŁNA ODPOWIEDŹ SMSPLANET ───',
+        data.responseRaw ?? JSON.stringify(data.response ?? data.error),
+      ];
+      if (data.error) lines.push('─── BŁĄD ───', data.error);
+      result.textContent = lines.join('\n');
       result.className   = 'smsplanet-result ' + (data.ok ? 'ok' : 'err');
     } catch (e) {
-      result.textContent = 'Błąd sieci: ' + e.message;
+      result.textContent = '─── BŁĄD SIECI ───\n' + e.message;
       result.className   = 'smsplanet-result err';
     } finally {
       btn.disabled = false;
