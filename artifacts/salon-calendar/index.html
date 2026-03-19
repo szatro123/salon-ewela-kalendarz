@@ -1231,22 +1231,19 @@
   function getOccupiedSlots() {
     const date = document.getElementById('f-date').value;
     if (!date) return new Set();
-    const duration = parseInt(document.getElementById('f-duration').value, 10) || 60;
     const active = loadAll().filter(a =>
       a.date === date &&
       !['cancelled','no_show'].includes(a.status) &&
       a.id !== editingId
     );
     const occupied = new Set();
-    TIME_SLOTS.forEach(slot => {
-      const slotStart = timeToMins(slot);
-      const slotEnd   = slotStart + duration;
-      const hasConflict = active.some(a => {
-        const aStart = timeToMins(a.time);
-        const aEnd   = aStart + Number(a.duration);
-        return slotStart < aEnd && slotEnd > aStart;
+    active.forEach(a => {
+      const aStart = timeToMins(a.time);
+      const aEnd   = aStart + Number(a.duration);
+      TIME_SLOTS.forEach(slot => {
+        const s = timeToMins(slot);
+        if (s >= aStart && s < aEnd) occupied.add(slot);
       });
-      if (hasConflict) occupied.add(slot);
     });
     return occupied;
   }
