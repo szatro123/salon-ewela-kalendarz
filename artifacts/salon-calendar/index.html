@@ -407,6 +407,45 @@
     }
     .icon-btn:hover { background: var(--blush); color: var(--text-dark); }
     .icon-btn.delete:hover { background: #fff0f3; color: #c92a2a; }
+    .icon-btn.rebook:hover { background: #e8f5ee; color: #2d6e47; }
+
+    /* ── Rebook popup ── */
+    .rebook-popup {
+      display: none;
+      position: fixed;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 8px 24px rgba(58,32,48,.2);
+      padding: 6px;
+      z-index: 200;
+      min-width: 215px;
+      animation: fadeDown .15s ease;
+    }
+    .rebook-popup.open { display: block; }
+    .rebook-option {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: none;
+      border: none;
+      padding: 10px 14px;
+      font-size: 0.88rem;
+      font-family: 'Inter', sans-serif;
+      color: var(--text-dark);
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      transition: background .12s, color .12s;
+    }
+    .rebook-option:hover { background: var(--rose-bg); color: var(--rose); }
+    .rebook-divider { height: 1px; background: var(--blush); margin: 4px 0; }
+    .rebook-msg {
+      font-size: 0.78rem;
+      color: var(--day-4-fg);
+      padding: 4px 14px 6px;
+      display: none;
+    }
+    .rebook-msg.visible { display: block; }
 
     /* ── Appointment modal ── */
     .modal-backdrop {
@@ -687,6 +726,15 @@
   </div>
 </div>
 
+<!-- Popup: Umów ponownie -->
+<div id="rebook-popup" class="rebook-popup">
+  <button class="rebook-option" id="rebook-3w">📅 Umów za 3 tygodnie</button>
+  <button class="rebook-option" id="rebook-4w">📅 Umów za 4 tygodnie</button>
+  <div class="rebook-divider"></div>
+  <button class="rebook-option" id="rebook-custom">🔍 Wybierz inny termin</button>
+  <div class="rebook-msg" id="rebook-msg"></div>
+</div>
+
 <!-- Potwierdzenie usunięcia -->
 <div class="delete-confirm" id="delete-confirm">
   <div class="delete-box">
@@ -917,12 +965,15 @@
         </div>
         <div class="card-actions">
           <button class="icon-btn edit"   data-id="${a.id}" title="Edytuj">✏️</button>
+          <button class="icon-btn rebook" data-id="${a.id}" title="Umów ponownie">🔁</button>
           <button class="icon-btn delete" data-id="${a.id}" title="Usuń">🗑️</button>
         </div>
       </div>`).join('');
 
     list.querySelectorAll('.edit').forEach(btn =>
       btn.addEventListener('click', e => { e.stopPropagation(); openEdit(btn.dataset.id); }));
+    list.querySelectorAll('.rebook').forEach(btn =>
+      btn.addEventListener('click', e => { e.stopPropagation(); openRebook(btn.dataset.id, btn); }));
     list.querySelectorAll('.delete').forEach(btn =>
       btn.addEventListener('click', e => { e.stopPropagation(); openDelete(btn.dataset.id); }));
     list.querySelectorAll('.appointment-card').forEach(card =>
@@ -1176,11 +1227,113 @@
     toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
   }
 
+  // ── Rebook (Umów ponownie) ────────────────────────────────────────────────
+  let rebookApptId = null;
+
+  function addWeeks(dateStr, weeks) {
+    const d = new Date(dateStr + 'T00:00:00');
+    d.setDate(d.getDate() + weeks * 7);
+    return d.toISOString().slice(0, 10);
+  }
+
+  function hasConflict(date, time, duration) {
+    const newStart = timeToMins(time);
+    const newEnd   = newStart + Number(duration);
+    return loadAll()
+      .filter(a => a.date === date && !['cancelled','no_show'].includes(a.status))
+      .some(a => {
+        const aStart = timeToMins(a.time);
+        const aEnd   = aStart + Number(a.duration);
+        return newStart < aEnd && newEnd > aStart;
+      });
+  }
+
+  function openRebook(id, btnEl) {
+    rebookApptId = id;
+    const msg = document.getElementById('rebook-msg');
+    msg.textContent = '';
+    msg.classList.remove('visible');
+    const popup = document.getElementById('rebook-popup');
+    popup.classList.add('open');
+    const rect    = btnEl.getBoundingClientRect();
+    const popupW  = 220;
+    let left = rect.right + 8;
+    if (left + popupW > window.innerWidth - 8) left = rect.left - popupW - 8;
+    if (left < 8) left = 8;
+    let top = rect.top;
+    if (top + 160 > window.innerHeight - 8) top = window.innerHeight - 168;
+    popup.style.left = left + 'px';
+    popup.style.top  = top + 'px';
+  }
+
+  function closeRebook() {
+    document.getElementById('rebook-popup').classList.remove('open');
+    rebookApptId = null;
+  }
+
+  function quickRebook(weeks) {
+    const a = loadAll().find(x => x.id === rebookApptId);
+    if (!a) return;
+    const newDate = addWeeks(a.date, weeks);
+    if (hasConflict(newDate, a.time, a.duration)) {
+      const msg = document.getElementById('rebook-msg');
+      msg.textContent = 'Ta godzina jest już zajęta. Wybierz inną.';
+      msg.classList.add('visible');
+      return;
+    }
+    const all = loadAll();
+    all.push({
+      id: 'a' + Date.now() + Math.random().toString(36).slice(2,6),
+      clientName: a.clientName,
+      phone:      a.phone,
+      service:    a.service,
+      date:       newDate,
+      time:       a.time,
+      duration:   a.duration,
+      notes:      a.notes || '',
+      status:     'scheduled'
+    });
+    saveAll(all);
+    closeRebook();
+    currentDate = newDate;
+    render();
+    toast('Wizyta umówiona ✓');
+  }
+
+  document.getElementById('rebook-3w').addEventListener('click', () => quickRebook(3));
+  document.getElementById('rebook-4w').addEventListener('click', () => quickRebook(4));
+
+  document.getElementById('rebook-custom').addEventListener('click', () => {
+    const a = loadAll().find(x => x.id === rebookApptId);
+    if (!a) return;
+    closeRebook();
+    editingId = null;
+    document.getElementById('modal-title').textContent = 'Nowa wizyta';
+    document.getElementById('form-save').textContent   = 'Zapisz wizytę';
+    clearErrors();
+    document.getElementById('f-name').value     = a.clientName;
+    document.getElementById('f-phone').value    = a.phone;
+    document.getElementById('f-service').value  = a.service;
+    document.getElementById('f-date').value     = '';
+    setTimeValue('');
+    document.getElementById('f-duration').value = String(a.duration);
+    document.getElementById('f-status').value   = 'scheduled';
+    document.getElementById('f-notes').value    = a.notes || '';
+    document.getElementById('modal-backdrop').classList.add('open');
+    document.getElementById('f-name').focus();
+  });
+
+  document.addEventListener('click', e => {
+    if (!document.getElementById('rebook-popup').classList.contains('open')) return;
+    if (!e.target.closest('#rebook-popup') && !e.target.closest('.rebook')) closeRebook();
+  });
+
   // ── Skróty klawiszowe ─────────────────────────────────────────────────────
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
       closeModal();
       closeCalendar();
+      closeRebook();
       document.getElementById('delete-confirm').classList.remove('open');
     }
   });
