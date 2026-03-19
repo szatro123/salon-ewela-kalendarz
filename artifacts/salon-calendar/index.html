@@ -1628,6 +1628,7 @@
     document.getElementById('err-name').textContent  = '';
     document.getElementById('err-phone').textContent = '';
     closeSuggestions();
+    if (formSelectedDate) setTimeout(() => openTimePicker(), 100);
   });
 
   document.getElementById('f-name').addEventListener('blur', () => {
