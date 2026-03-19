@@ -768,6 +768,35 @@
       .stat-value { font-size: 0.95rem; }
       .cal-popup { left: 0; right: 0; border-radius: var(--radius); }
     }
+    /* ── SMSPlanet debug panel ───────────────────────────────────────────── */
+    .smsplanet-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 300;
+      background: #1a1a2e; color: #e0e0e0;
+      padding: 10px 16px; display: flex; align-items: center; gap: 10px;
+      flex-wrap: wrap; font-size: 0.82rem; font-family: monospace;
+      border-top: 2px solid #4a90d9;
+    }
+    .smsplanet-bar label { color: #aaa; white-space: nowrap; }
+    .smsplanet-phone {
+      flex: 1; min-width: 140px; max-width: 200px;
+      background: #2a2a3e; border: 1px solid #4a90d9; border-radius: 4px;
+      color: white; padding: 5px 10px; font-size: 0.82rem; font-family: monospace;
+    }
+    .smsplanet-btn {
+      background: #4a90d9; color: white; border: none; border-radius: 4px;
+      padding: 6px 14px; cursor: pointer; font-size: 0.82rem; font-weight: 600;
+      white-space: nowrap; transition: background .15s;
+    }
+    .smsplanet-btn:hover { background: #357abd; }
+    .smsplanet-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .smsplanet-result {
+      flex: 1; min-width: 200px; white-space: pre-wrap; word-break: break-all;
+      font-size: 0.78rem; line-height: 1.4;
+      padding: 4px 8px; background: #111122; border-radius: 4px;
+      max-height: 80px; overflow-y: auto;
+    }
+    .smsplanet-result.ok  { color: #5af078; }
+    .smsplanet-result.err { color: #f07878; }
   </style>
 </head>
 <body>
@@ -1991,6 +2020,50 @@
 
   // ── Start ─────────────────────────────────────────────────────────────────
   render();
+  // ── SMSPlanet debug bar ───────────────────────────────────────────────────
+  document.getElementById('smsplanet-btn').addEventListener('click', async () => {
+    const phone  = document.getElementById('smsplanet-phone').value.trim();
+    const result = document.getElementById('smsplanet-result');
+    const btn    = document.getElementById('smsplanet-btn');
+    if (!phone) { result.textContent = 'Wpisz numer telefonu'; result.className = 'smsplanet-result err'; return; }
+
+    btn.disabled = true;
+    result.textContent = 'Wysyłanie…';
+    result.className = 'smsplanet-result';
+
+    try {
+      const res = await fetch('/api/test-smsplanet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone,
+          message: 'Test SMSPlanet z Salon Pieknosci Ewelina. Jesli to widzisz, integracja dziala!'
+        })
+      });
+      const data = await res.json();
+      const summary = [
+        'HTTP: ' + (data.httpStatus ?? res.status),
+        'Tel: '  + (data.normalizedPhone ?? phone),
+        'OK: '   + data.ok,
+        'Resp: ' + JSON.stringify(data.response ?? data.error),
+      ].join('\n');
+      result.textContent = summary;
+      result.className   = 'smsplanet-result ' + (data.ok ? 'ok' : 'err');
+    } catch (e) {
+      result.textContent = 'Błąd sieci: ' + e.message;
+      result.className   = 'smsplanet-result err';
+    } finally {
+      btn.disabled = false;
+    }
+  });
 </script>
+
+<div class="smsplanet-bar">
+  <label>🧪 SMSPlanet test:</label>
+  <input class="smsplanet-phone" id="smsplanet-phone" type="tel" placeholder="600123456" />
+  <button class="smsplanet-btn" id="smsplanet-btn">Wyślij test</button>
+  <div class="smsplanet-result" id="smsplanet-result"></div>
+</div>
+
 </body>
 </html>
