@@ -301,7 +301,6 @@
       margin-top: 6px;
       flex-wrap: wrap;
     }
-    .price-tag { font-size: 0.88rem; font-weight: 600; color: var(--text-dark); }
     .phone-tag { font-size: 0.78rem; color: var(--text-light); }
     .notes-tag { font-size: 0.78rem; color: var(--text-light); font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
 
@@ -572,11 +571,6 @@
             <option value="180">3 godz.</option>
           </select>
         </div>
-        <div class="form-group">
-          <label for="f-price">Cena (zł) *</label>
-          <input type="number" id="f-price" placeholder="0,00" min="0" step="0.01" />
-          <div class="error-msg" id="err-price"></div>
-        </div>
         <div class="form-group full">
           <label for="f-status">Status</label>
           <select id="f-status">
@@ -660,10 +654,6 @@
   function timeToMins(t) {
     const [h, m] = t.split(':').map(Number);
     return h * 60 + m;
-  }
-  function fmtPrice(p) {
-    const v = Number(p);
-    return (v % 1 === 0 ? v : v.toFixed(2).replace('.', ',')) + ' zł';
   }
   function fmtDuration(mins) {
     if (mins < 60) return mins + ' min';
@@ -799,11 +789,7 @@
       .filter(a => a.date === currentDate)
       .sort((a, b) => a.time.localeCompare(b.time));
 
-    const active  = day.filter(a => !['cancelled','no_show'].includes(a.status));
-    const rev     = active.reduce((s, a) => s + Number(a.price), 0);
-    const revEl   = document.getElementById('stat-revenue');
-    const cntEl   = document.getElementById('stat-count');
-    if (revEl) revEl.textContent = fmtPrice(rev);
+    const cntEl = document.getElementById('stat-count');
     if (cntEl) cntEl.textContent = day.length;
 
     const list = document.getElementById('appointments-list');
@@ -833,7 +819,6 @@
           <div class="service-row">${esc(a.service)}</div>
           <div class="card-meta">
             <span class="badge badge-${a.status}">${statusLabels[a.status] || a.status}</span>
-            <span class="price-tag">${fmtPrice(a.price)}</span>
             <span class="phone-tag">${esc(a.phone)}</span>
             ${a.notes ? `<span class="notes-tag" title="${esc(a.notes)}">📝 ${esc(a.notes)}</span>` : ''}
           </div>
@@ -892,7 +877,6 @@
     document.getElementById('f-date').value     = a.date;
     document.getElementById('f-time').value     = a.time;
     document.getElementById('f-duration').value = String(a.duration);
-    document.getElementById('f-price').value    = a.price;
     document.getElementById('f-status').value   = a.status;
     document.getElementById('f-notes').value    = a.notes || '';
     document.getElementById('modal-backdrop').classList.add('open');
@@ -909,7 +893,7 @@
     clearErrors();
   }
   function clearErrors() {
-    ['name','phone','service','date','time','price','booking'].forEach(f => {
+    ['name','phone','service','date','time','booking'].forEach(f => {
       const el = document.getElementById('err-'+f); if (el) el.textContent = '';
     });
   }
@@ -932,7 +916,6 @@
     const date     = document.getElementById('f-date').value;
     const time     = document.getElementById('f-time').value;
     const duration = parseInt(document.getElementById('f-duration').value, 10);
-    const price    = parseFloat(document.getElementById('f-price').value);
     const status   = document.getElementById('f-status').value;
     const notes    = document.getElementById('f-notes').value.trim();
 
@@ -942,7 +925,6 @@
     if (!service)                  { document.getElementById('err-service').textContent = 'Wybierz usługę'; valid = false; }
     if (!date)                     { document.getElementById('err-date').textContent    = 'Pole wymagane'; valid = false; }
     if (!time)                     { document.getElementById('err-time').textContent    = 'Pole wymagane'; valid = false; }
-    if (isNaN(price) || price < 0) { document.getElementById('err-price').textContent  = 'Podaj prawidłową cenę'; valid = false; }
     if (!valid) return;
 
     // Sprawdzenie podwójnej rezerwacji
@@ -964,14 +946,14 @@
     if (editingId) {
       const idx = all.findIndex(x => x.id === editingId);
       if (idx !== -1) {
-        all[idx] = { ...all[idx], clientName:name, phone, service, date, time, duration, price, notes, status };
+        all[idx] = { ...all[idx], clientName:name, phone, service, date, time, duration, notes, status };
         saveAll(all);
         toast('Wizyta zaktualizowana ✓');
       }
     } else {
       all.push({
         id: 'a' + Date.now() + Math.random().toString(36).slice(2,6),
-        clientName: name, phone, service, date, time, duration, price, notes, status
+        clientName: name, phone, service, date, time, duration, notes, status
       });
       saveAll(all);
       toast('Wizyta zapisana ✓');
