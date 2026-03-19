@@ -302,6 +302,12 @@
     .cal-day.c2 { background: var(--day-2-bg); color: var(--day-2-fg); }
     .cal-day.c3 { background: var(--day-3-bg); color: var(--day-3-fg); }
     .cal-day.c4 { background: var(--day-4-bg); color: var(--day-4-fg); }
+    /* Past dates — muted, not clickable */
+    .cal-day.past {
+      opacity: 0.28;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
     /* Today ring */
     .cal-day.is-today { border-color: var(--rose-light); }
     /* Selected — keep load color, add rose ring */
@@ -815,6 +821,7 @@
   function todayStr() {
     return new Date().toISOString().slice(0, 10);
   }
+  function isPast(iso) { return iso < todayStr(); }
   function offsetDate(base, days) {
     const d = new Date(base + 'T00:00:00');
     d.setDate(d.getDate() + days);
@@ -991,18 +998,24 @@
       const count = counts[iso] || 0;
       const el    = document.createElement('div');
 
+      const past = isPast(iso);
       let cls = 'cal-day ' + dayColorClass(count);
-      if (iso === today)           cls += ' is-today';
+      if (past)                     cls += ' past';
+      if (iso === today)            cls += ' is-today';
       if (iso === formSelectedDate) cls += ' is-selected';
 
       el.className   = cls;
       el.textContent = day;
-      el.title       = count === 0 ? 'Brak wizyt' : count + (count === 1 ? ' wizyta' : count < 5 ? ' wizyty' : ' wizyt');
+      el.title       = past ? 'Data z przeszłości'
+                     : count === 0 ? 'Brak wizyt'
+                     : count + (count === 1 ? ' wizyta' : count < 5 ? ' wizyty' : ' wizyt');
 
-      el.addEventListener('click', () => {
-        setFormDate(iso);
-        closeFormCalendar();
-      });
+      if (!past) {
+        el.addEventListener('click', () => {
+          setFormDate(iso);
+          closeFormCalendar();
+        });
+      }
       grid.appendChild(el);
     }
   }
@@ -1311,6 +1324,7 @@
     if (!phone)                    { document.getElementById('err-phone').textContent   = 'Pole wymagane'; valid = false; }
     if (!service)                  { document.getElementById('err-service').textContent = 'Wybierz usługę'; valid = false; }
     if (!date)                     { document.getElementById('err-date').textContent    = 'Pole wymagane'; valid = false; }
+    else if (isPast(date))         { document.getElementById('err-date').textContent    = 'Nie można wybrać daty z przeszłości.'; valid = false; }
     if (!time)                     { document.getElementById('err-time').textContent    = 'Pole wymagane'; valid = false; }
     if (!valid) return;
 
