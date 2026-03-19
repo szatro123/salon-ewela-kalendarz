@@ -391,7 +391,48 @@
     .appt-time { font-size: 0.95rem; font-weight: 600; color: var(--rose); line-height: 1.2; }
     .appt-duration { font-size: 0.72rem; color: var(--text-light); margin-top: 2px; }
     .card-body { flex: 1; min-width: 0; }
-    .client-name { font-size: 1rem; font-weight: 600; color: var(--text-dark); }
+    .client-name {
+      font-size: 1rem; font-weight: 600; color: var(--text-dark);
+      cursor: pointer; display: inline-block;
+      text-decoration: underline; text-underline-offset: 3px;
+      text-decoration-color: rgba(58,32,48,0.22);
+      transition: color .15s, text-decoration-color .15s;
+    }
+    .client-name:hover { color: var(--rose); text-decoration-color: var(--rose); }
+
+    /* Historia klientki */
+    .history-backdrop {
+      display: none; position: fixed; inset: 0; z-index: 150;
+      background: rgba(58,32,48,0.38); backdrop-filter: blur(2px);
+      align-items: flex-end; justify-content: center;
+    }
+    .history-backdrop.open { display: flex; }
+    .history-box {
+      background: white; border-radius: var(--radius) var(--radius) 0 0;
+      width: 100%; max-width: 520px; max-height: 72vh;
+      display: flex; flex-direction: column;
+      animation: slideUp .22s ease;
+    }
+    .history-hdr {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 18px 20px 14px; border-bottom: 1px solid var(--blush);
+      flex-shrink: 0;
+    }
+    .history-hdr h3 {
+      font-family: 'Playfair Display', serif; font-size: 1.05rem; color: var(--rose);
+    }
+    .history-list { overflow-y: auto; padding: 8px 16px 16px; flex: 1; }
+    .history-item {
+      padding: 11px 0; border-bottom: 1px solid var(--blush);
+    }
+    .history-item:last-child { border-bottom: none; }
+    .hi-date { font-size: 0.88rem; font-weight: 600; color: var(--text-dark); }
+    .hi-service { font-size: 0.82rem; color: var(--text-mid); margin-top: 3px; }
+    .hi-notes { font-size: 0.78rem; color: var(--text-light); margin-top: 2px; }
+    .history-empty {
+      text-align: center; color: var(--text-light);
+      padding: 28px 0; font-size: 0.88rem;
+    }
     .service-row { font-size: 0.85rem; color: var(--text-mid); margin-top: 2px; }
     .card-meta {
       display: flex;
@@ -848,6 +889,17 @@
   </div>
 </div>
 
+<!-- Historia klientki -->
+<div class="history-backdrop" id="history-backdrop">
+  <div class="history-box">
+    <div class="history-hdr">
+      <h3 id="history-title"></h3>
+      <button class="close-btn" id="history-close" aria-label="Zamknij">✕</button>
+    </div>
+    <div id="history-list" class="history-list"></div>
+  </div>
+</div>
+
 <!-- Powiadomienie -->
 <div class="toast" id="toast"></div>
 
@@ -1178,7 +1230,7 @@
           <div class="appt-duration">${fmtDuration(Number(a.duration))}</div>
         </div>
         <div class="card-body">
-          <div class="client-name">${esc(a.clientName)}</div>
+          <div class="client-name" data-client="${esc(a.clientName)}">${esc(a.clientName)}</div>
           <div class="service-row">${esc(a.service)}</div>
           <div class="card-meta">
             <span class="badge badge-${a.status}">${statusLabels[a.status] || a.status}</span>
@@ -1199,8 +1251,8 @@
       btn.addEventListener('click', e => { e.stopPropagation(); openRebook(btn.dataset.id, btn); }));
     list.querySelectorAll('.delete').forEach(btn =>
       btn.addEventListener('click', e => { e.stopPropagation(); openDelete(btn.dataset.id); }));
-    list.querySelectorAll('.appointment-card').forEach(card =>
-      card.addEventListener('click', () => openEdit(card.dataset.id)));
+    list.querySelectorAll('.client-name').forEach(el =>
+      el.addEventListener('click', e => { e.stopPropagation(); openClientHistory(el.dataset.client); }));
   }
 
   function esc(s) {
@@ -1632,6 +1684,43 @@
     setTimeout(closeSuggestions, 150);
   });
 
+  // ── Historia klientki ─────────────────────────────────────────────────────
+  const statusLabelsHist = {
+    scheduled: 'Zaplanowana', confirmed: 'Potwierdzona',
+    completed: 'Zakończona',  cancelled: 'Anulowana', no_show: 'Nieobecność'
+  };
+
+  function openClientHistory(clientName) {
+    const all = loadAll()
+      .filter(a => a.clientName.trim().toLowerCase() === clientName.trim().toLowerCase())
+      .sort((a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time));
+    document.getElementById('history-title').textContent = clientName;
+    const listEl = document.getElementById('history-list');
+    if (all.length === 0) {
+      listEl.innerHTML = '<div class="history-empty">Brak wizyt dla tej klientki.</div>';
+    } else {
+      listEl.innerHTML = all.map(a => {
+        const d = new Date(a.date + 'T00:00:00');
+        const dateStr = d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
+        return `<div class="history-item">
+          <div class="hi-date">${dateStr} · ${a.time}</div>
+          <div class="hi-service">${esc(a.service)} · ${fmtDuration(Number(a.duration))} · ${statusLabelsHist[a.status] || a.status}</div>
+          ${a.notes ? `<div class="hi-notes">📝 ${esc(a.notes)}</div>` : ''}
+        </div>`;
+      }).join('');
+    }
+    document.getElementById('history-backdrop').classList.add('open');
+  }
+
+  function closeClientHistory() {
+    document.getElementById('history-backdrop').classList.remove('open');
+  }
+
+  document.getElementById('history-close').addEventListener('click', closeClientHistory);
+  document.getElementById('history-backdrop').addEventListener('click', e => {
+    if (e.target === document.getElementById('history-backdrop')) closeClientHistory();
+  });
+
   // ── Skróty klawiszowe ─────────────────────────────────────────────────────
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
@@ -1639,6 +1728,7 @@
       closeModal();
       closeCalendar();
       closeRebook();
+      closeClientHistory();
       document.getElementById('delete-confirm').classList.remove('open');
     }
   });
