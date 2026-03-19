@@ -1014,6 +1014,7 @@
         el.addEventListener('click', () => {
           setFormDate(iso);
           closeFormCalendar();
+          setTimeout(() => openTimePicker(), 80);
         });
       }
       grid.appendChild(el);
