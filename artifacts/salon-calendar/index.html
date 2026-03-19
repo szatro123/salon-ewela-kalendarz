@@ -1727,25 +1727,42 @@
   }
 
   function openClientHistory(clientName) {
-    const today = todayStr();
+    const now = Date.now();
+
+    function apptStartMs(a) {
+      return new Date(a.date + 'T' + a.time + ':00').getTime();
+    }
+    function apptEndMs(a) {
+      return apptStartMs(a) + Number(a.duration) * 60000;
+    }
+    function apptIsPast(a)   { return apptEndMs(a)   < now; }
+    function apptIsFuture(a) { return apptStartMs(a) > now; }
+
     const all = loadAll()
       .filter(a => a.clientName.trim().toLowerCase() === clientName.trim().toLowerCase());
 
-    const past   = all.filter(a => a.date <= today)
-                      .sort((a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time));
-    const future = all.filter(a => a.date > today)
-                      .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
-    const allSorted = [...past, ...future.slice().reverse()];
+    const past   = all.filter(apptIsPast)
+                      .sort((a, b) => apptEndMs(b) - apptEndMs(a));   // newest last-visit first
+    const future = all.filter(apptIsFuture)
+                      .sort((a, b) => apptStartMs(a) - apptStartMs(b)); // nearest next-visit first
+
+    const allSorted = [...all].sort((a, b) => apptStartMs(a) - apptStartMs(b)); // ascending
 
     document.getElementById('history-title').textContent = clientName;
 
     const subtitleParts = [];
-    if (past.length > 0)   subtitleParts.push(`Odbyte: ${past.length}`);
+    if (past.length   > 0) subtitleParts.push(`Odbyte: ${past.length}`);
     if (future.length > 0) subtitleParts.push(`Nadchodzące: ${future.length}`);
     document.getElementById('history-subtitle').textContent = subtitleParts.join(' · ');
 
     const fmtDate = iso => new Date(iso + 'T00:00:00')
       .toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    function displayStatus(a) {
+      if (apptIsPast(a))   return 'Zakończona';
+      if (apptIsFuture(a)) return statusLabelsHist[a.status] || a.status;
+      return statusLabelsHist[a.status] || a.status; // in-progress: keep stored status
+    }
 
     const summaryEl = document.getElementById('history-summary');
     const lastVisit = past[0]   || null;
@@ -1770,11 +1787,12 @@
       listEl.innerHTML = '<div class="history-empty">Brak wizyt dla tej klientki.</div>';
     } else {
       listEl.innerHTML = allSorted.map(a => {
-        const isFuture = a.date > today;
-        return `<div class="history-item${isFuture ? '' : ' past'}">
+        const isPast   = apptIsPast(a);
+        const isFuture = apptIsFuture(a);
+        return `<div class="history-item${isPast ? ' past' : ''}">
           <div class="hi-content">
             <div class="hi-date">${fmtDate(a.date)} · ${a.time}${isFuture ? ' 🔜' : ''}</div>
-            <div class="hi-service">${esc(a.service)} · ${fmtDuration(Number(a.duration))} · ${statusLabelsHist[a.status] || a.status}</div>
+            <div class="hi-service">${esc(a.service)} · ${fmtDuration(Number(a.duration))} · ${displayStatus(a)}</div>
             ${a.notes ? `<div class="hi-notes">📝 ${esc(a.notes)}</div>` : ''}
           </div>
           <button class="btn-hi-rebook" data-id="${esc(a.id)}">Umów ponownie</button>
