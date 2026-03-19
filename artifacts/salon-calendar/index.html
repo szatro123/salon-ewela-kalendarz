@@ -1490,7 +1490,7 @@
     document.getElementById('f-status').value   = 'scheduled';
     document.getElementById('f-notes').value    = a.notes || '';
     document.getElementById('modal-backdrop').classList.add('open');
-    document.getElementById('f-name').focus();
+    setTimeout(() => openFormCalendar(), 80);
   });
 
   document.addEventListener('click', e => {
