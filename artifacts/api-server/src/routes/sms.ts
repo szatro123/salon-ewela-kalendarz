@@ -24,7 +24,7 @@ router.post("/schedule", async (req: Request, res: Response) => {
     .set({ cancelled: true })
     .where(eq(smsQueueTable.appointmentId, appointmentId));
 
-  const confirmScheduledAt = new Date(Date.now() + 15 * 60 * 1000);
+  const confirmScheduledAt = new Date(Date.now() + 1 * 60 * 1000);
 
   await db.insert(smsQueueTable).values({
     appointmentId,
