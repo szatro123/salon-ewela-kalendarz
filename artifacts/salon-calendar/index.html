@@ -67,6 +67,56 @@
       color: var(--text-mid);
       margin-top: 2px;
     }
+    .header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .search-btn {
+      background: rgba(181,83,106,.12); color: var(--rose);
+      border: none; border-radius: var(--radius-sm);
+      width: 44px; height: 44px; font-size: 1.1rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background .15s;
+    }
+    .search-btn:hover { background: rgba(181,83,106,.22); }
+
+    /* Search panel */
+    .search-backdrop {
+      display: none; position: fixed; inset: 0; z-index: 180;
+      background: rgba(58,32,48,.38); backdrop-filter: blur(2px);
+      align-items: flex-start; justify-content: center;
+    }
+    .search-backdrop.open { display: flex; }
+    .search-box {
+      background: white; border-radius: 0 0 var(--radius) var(--radius);
+      width: 100%; max-width: 520px; max-height: 78vh;
+      display: flex; flex-direction: column;
+      animation: fadeDown .2s ease;
+    }
+    .search-hdr {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 16px 12px; border-bottom: 1px solid var(--blush);
+      flex-shrink: 0;
+    }
+    .search-input {
+      flex: 1; border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 9px 14px; font-size: 0.92rem; font-family: inherit;
+      color: var(--text-dark); outline: none; transition: border-color .15s;
+    }
+    .search-input:focus { border-color: var(--rose-light); }
+    .search-results { overflow-y: auto; flex: 1; }
+    .search-result-item {
+      padding: 12px 16px; cursor: pointer;
+      border-bottom: 1px solid var(--blush);
+      transition: background .1s;
+    }
+    .search-result-item:last-child { border-bottom: none; }
+    .search-result-item:hover,
+    .search-result-item:active { background: var(--rose-bg); }
+    .sri-name { font-size: 0.92rem; font-weight: 600; color: var(--text-dark); }
+    .sri-detail { font-size: 0.8rem; color: var(--text-mid); margin-top: 2px; }
+    .search-empty {
+      text-align: center; padding: 28px 0;
+      color: var(--text-light); font-size: 0.88rem;
+    }
+
     .header-add-btn {
       background: var(--rose);
       color: white;
@@ -728,9 +778,10 @@
       <div class="salon-title">✦ Salon Piękności</div>
       <div class="salon-sub">Kalendarz wizyt</div>
     </div>
-    <button class="header-add-btn" id="open-add">
-      ➕ Dodaj
-    </button>
+    <div class="header-actions">
+      <button class="search-btn" id="open-search" title="Szukaj klientki">🔍</button>
+      <button class="header-add-btn" id="open-add">➕ Dodaj</button>
+    </div>
   </div>
 </header>
 
@@ -912,6 +963,18 @@
       <button class="btn-delete" id="delete-ok">🗑 Usuń</button>
       <button class="btn-cancel" id="delete-cancel">Zachowaj</button>
     </div>
+  </div>
+</div>
+
+<!-- Wyszukiwarka klientek -->
+<div class="search-backdrop" id="search-backdrop">
+  <div class="search-box">
+    <div class="search-hdr">
+      <input class="search-input" id="search-input" type="text"
+             placeholder="Szukaj klientki…" autocomplete="off" />
+      <button class="close-btn" id="search-close" aria-label="Zamknij">✕</button>
+    </div>
+    <div class="search-results" id="search-results"></div>
   </div>
 </div>
 
@@ -1712,6 +1775,59 @@
 
   document.getElementById('f-name').addEventListener('blur', () => {
     setTimeout(closeSuggestions, 150);
+  });
+
+  // ── Wyszukiwarka klientek ─────────────────────────────────────────────────
+  function openSearch() {
+    document.getElementById('search-input').value = '';
+    document.getElementById('search-results').innerHTML = '';
+    document.getElementById('search-backdrop').classList.add('open');
+    setTimeout(() => document.getElementById('search-input').focus(), 80);
+  }
+  function closeSearch() {
+    document.getElementById('search-backdrop').classList.remove('open');
+  }
+
+  function renderSearchResults(q) {
+    const box = document.getElementById('search-results');
+    if (!q) { box.innerHTML = ''; return; }
+    const lq = q.toLowerCase();
+    const matches = getClientBook().filter(c =>
+      c.clientName.toLowerCase().includes(lq) ||
+      (c.phone || '').replace(/\s/g,'').includes(q.replace(/\s/g,''))
+    );
+    if (!matches.length) {
+      box.innerHTML = '<div class="search-empty">Brak wyników dla „' + esc(q) + '"</div>';
+      return;
+    }
+    box.innerHTML = matches.map(c => {
+      const d = new Date(c.date + 'T00:00:00');
+      const dateStr = d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
+      return `<div class="search-result-item" data-client="${esc(c.clientName)}">
+        <div class="sri-name">${esc(c.clientName)}</div>
+        <div class="sri-detail">${esc(c.phone)} · ostatnia: ${dateStr}</div>
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('open-search').addEventListener('click', openSearch);
+  document.getElementById('search-close').addEventListener('click', closeSearch);
+  document.getElementById('search-backdrop').addEventListener('click', e => {
+    if (e.target === document.getElementById('search-backdrop')) closeSearch();
+  });
+  document.getElementById('search-input').addEventListener('input', e => {
+    renderSearchResults(e.target.value.trim());
+  });
+  document.getElementById('search-results').addEventListener('click', e => {
+    const item = e.target.closest('.search-result-item');
+    if (!item) return;
+    closeSearch();
+    openClientHistory(item.dataset.client);
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && document.getElementById('search-backdrop').classList.contains('open')) {
+      closeSearch();
+    }
   });
 
   // ── Historia klientki ─────────────────────────────────────────────────────
