@@ -569,13 +569,22 @@
     }
     .delete-box h3 { font-size: 1.05rem; margin-bottom: 8px; }
     .delete-box p { font-size: 0.85rem; color: var(--text-mid); margin-bottom: 20px; }
-    .delete-actions { display: flex; gap: 10px; justify-content: center; }
+    .delete-actions { display: flex; flex-direction: column; gap: 8px; }
     .btn-delete {
       background: #c92a2a; color: white; border: none;
       border-radius: var(--radius-sm);
-      padding: 10px 20px; font-size: 0.88rem; font-weight: 600;
-      cursor: pointer;
+      padding: 11px 16px; font-size: 0.88rem; font-weight: 600;
+      cursor: pointer; width: 100%;
     }
+    .btn-delete-rebook {
+      background: var(--rose); color: white; border: none;
+      border-radius: var(--radius-sm);
+      padding: 11px 16px; font-size: 0.88rem; font-weight: 600;
+      cursor: pointer; width: 100%;
+      transition: background .15s;
+    }
+    .btn-delete-rebook:hover { background: #9e3f59; }
+    .delete-actions .btn-cancel { width: 100%; }
 
     /* Toast */
     .toast {
@@ -788,8 +797,9 @@
     <h3>Usunąć wizytę?</h3>
     <p id="delete-confirm-text">Ta operacja jest nieodwracalna.</p>
     <div class="delete-actions">
-      <button class="btn-cancel" id="delete-cancel">Zachowaj</button>
+      <button class="btn-delete-rebook" id="delete-rebook">🔁 Usuń i umów nowy termin</button>
       <button class="btn-delete" id="delete-ok">Usuń</button>
+      <button class="btn-cancel" id="delete-cancel">Zachowaj</button>
     </div>
   </div>
 </div>
@@ -1386,6 +1396,31 @@
     deletingId = null;
     document.getElementById('delete-confirm').classList.remove('open');
     render();
+  });
+
+  document.getElementById('delete-rebook').addEventListener('click', () => {
+    if (!deletingId) return;
+    const a = loadAll().find(x => x.id === deletingId);
+    saveAll(loadAll().filter(x => x.id !== deletingId));
+    toast('Wizyta usunięta');
+    deletingId = null;
+    document.getElementById('delete-confirm').classList.remove('open');
+    render();
+    if (!a) return;
+    editingId = null;
+    document.getElementById('modal-title').textContent = 'Nowa wizyta';
+    document.getElementById('form-save').textContent   = 'Zapisz wizytę';
+    clearErrors();
+    document.getElementById('f-name').value     = a.clientName;
+    document.getElementById('f-phone').value    = a.phone;
+    document.getElementById('f-service').value  = a.service;
+    setFormDate('');
+    setTimeValue('');
+    document.getElementById('f-duration').value = String(a.duration);
+    document.getElementById('f-status').value   = 'scheduled';
+    document.getElementById('f-notes').value    = a.notes || '';
+    document.getElementById('modal-backdrop').classList.add('open');
+    setTimeout(() => openFormCalendar(), 80);
   });
 
   // ── Powiadomienie ─────────────────────────────────────────────────────────
