@@ -7,8 +7,13 @@ export async function sendSms(phone: string, message: string): Promise<void> {
 
   const params = new URLSearchParams({ to: phone, message, format: "json" });
 
+  console.log(`[SMS] → Sending to: ${phone}`);
+
+  let res: Response;
+  let rawBody: string;
+
   try {
-    const res = await fetch("https://api.smsapi.pl/sms.do", {
+    res = await fetch("https://api.smsapi.pl/sms.do", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -17,9 +22,26 @@ export async function sendSms(phone: string, message: string): Promise<void> {
       body: params.toString(),
     });
 
-    const data = await res.json();
-    console.log(`[SMS] Sent to ${phone}:`, JSON.stringify(data));
+    rawBody = await res.text();
   } catch (err) {
-    console.error(`[SMS] Failed to send to ${phone}:`, err);
+    console.error(`[SMS] ✗ Network error sending to ${phone}:`, err);
+    return;
+  }
+
+  console.log(`[SMS] HTTP ${res.status} for ${phone}`);
+
+  try {
+    const data = JSON.parse(rawBody);
+    if (res.ok) {
+      console.log(`[SMS] ✓ Success for ${phone}:`, JSON.stringify(data));
+    } else {
+      console.error(`[SMS] ✗ Error for ${phone}:`, JSON.stringify(data));
+    }
+  } catch {
+    if (res.ok) {
+      console.log(`[SMS] ✓ Success for ${phone} (raw):`, rawBody);
+    } else {
+      console.error(`[SMS] ✗ Error for ${phone} (raw):`, rawBody);
+    }
   }
 }
