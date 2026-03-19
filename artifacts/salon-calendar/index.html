@@ -2074,8 +2074,9 @@
       const lines  = [
         status,
         '──────────────────────────────────',
-        'HTTP status : ' + (data.httpStatus ?? res.status),
-        'Tel (norm)  : ' + (data.normalizedPhone ?? phone),
+        'HTTP status  : ' + (data.httpStatus ?? res.status),
+        'Tel (norm)   : ' + (data.normalizedPhone ?? phone),
+        'Content-Type : ' + (data.contentType ?? '?'),
         '──────────────────────────────────',
         'PEŁNA ODPOWIEDŹ SMSPLANET:',
         data.responseRaw ?? JSON.stringify(data.response ?? data.error ?? '(brak)'),
