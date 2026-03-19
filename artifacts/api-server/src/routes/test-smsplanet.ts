@@ -11,6 +11,7 @@ function normalizePhone(raw: string): string {
 }
 
 router.post("/", async (req: Request, res: Response) => {
+  console.log("[SMSPlanet] ▶ /api/test-smsplanet hit — body:", JSON.stringify(req.body));
   const { phone, message } = req.body ?? {};
 
   if (typeof phone !== "string" || !phone || typeof message !== "string" || !message) {

@@ -1025,6 +1025,21 @@
 <!-- Powiadomienie -->
 <div class="toast" id="toast"></div>
 
+<!-- SMSPlanet debug bar -->
+<div class="smsplanet-bar">
+  <label>🧪 SMSPlanet:</label>
+  <input class="smsplanet-phone" id="smsplanet-phone" type="tel" placeholder="600123456" />
+  <button class="smsplanet-btn" id="smsplanet-btn">Wyślij test</button>
+</div>
+
+<div id="smsplanet-overlay" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);align-items:center;justify-content:center;">
+  <div style="background:#1a1a2e;border:2px solid #4a90d9;border-radius:10px;padding:20px 24px;max-width:90vw;width:480px;position:relative;">
+    <button id="smsplanet-close" style="position:absolute;top:10px;right:14px;background:none;border:none;color:#aaa;font-size:1.2rem;cursor:pointer;">✕</button>
+    <div style="color:#4a90d9;font-family:monospace;font-size:0.8rem;margin-bottom:10px;">🧪 WYNIK TESTU SMSPLANET</div>
+    <div class="smsplanet-result" id="smsplanet-result" style="max-height:340px;"></div>
+  </div>
+</div>
+
 <script>
   // ── Pamięć lokalna ────────────────────────────────────────────────────────
   const STORAGE_KEY = 'salon_appointments_v1';
@@ -2022,51 +2037,66 @@
   render();
   // ── SMSPlanet debug bar ───────────────────────────────────────────────────
   document.getElementById('smsplanet-btn').addEventListener('click', async () => {
-    const phone  = document.getElementById('smsplanet-phone').value.trim();
-    const result = document.getElementById('smsplanet-result');
-    const btn    = document.getElementById('smsplanet-btn');
-    if (!phone) { result.textContent = 'Wpisz numer telefonu'; result.className = 'smsplanet-result err'; return; }
+    console.log('[SMSPlanet UI] button clicked');
+    const phone   = document.getElementById('smsplanet-phone').value.trim();
+    const overlay = document.getElementById('smsplanet-overlay');
+    const resBox  = document.getElementById('smsplanet-result');
+    const btn     = document.getElementById('smsplanet-btn');
 
-    btn.disabled = true;
-    result.textContent = 'Wysyłanie…';
-    result.className = 'smsplanet-result';
+    if (!phone) {
+      overlay.style.display = 'flex';
+      resBox.className = 'smsplanet-result err';
+      resBox.textContent = '⚠ BŁĄD\nWpisz numer telefonu przed wysłaniem.';
+      return;
+    }
+
+    btn.textContent = 'Wysyłanie…';
+    btn.disabled    = true;
+    overlay.style.display = 'flex';
+    resBox.className = 'smsplanet-result';
+    resBox.textContent = 'Wysyłanie…';
 
     try {
-      const res = await fetch('/api/test-smsplanet', {
-        method: 'POST',
+      console.log('[SMSPlanet UI] sending fetch to /api/test-smsplanet, phone=' + phone);
+      const res  = await fetch('/api/test-smsplanet', {
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body:    JSON.stringify({
           phone,
           message: 'Test SMSPlanet z Salon Pieknosci Ewelina. Jesli to widzisz, integracja dziala!'
         })
       });
+      console.log('[SMSPlanet UI] response status:', res.status);
       const data = await res.json();
-      const lines = [
-        '─── WYNIK ───────────────────────',
+      console.log('[SMSPlanet UI] response data:', JSON.stringify(data));
+
+      const status = data.ok ? '✅ SUKCES' : '❌ BŁĄD';
+      const lines  = [
+        status,
+        '──────────────────────────────────',
         'HTTP status : ' + (data.httpStatus ?? res.status),
         'Tel (norm)  : ' + (data.normalizedPhone ?? phone),
-        'OK          : ' + data.ok,
-        '─── PEŁNA ODPOWIEDŹ SMSPLANET ───',
-        data.responseRaw ?? JSON.stringify(data.response ?? data.error),
+        '──────────────────────────────────',
+        'PEŁNA ODPOWIEDŹ SMSPLANET:',
+        data.responseRaw ?? JSON.stringify(data.response ?? data.error ?? '(brak)'),
       ];
-      if (data.error) lines.push('─── BŁĄD ───', data.error);
-      result.textContent = lines.join('\n');
-      result.className   = 'smsplanet-result ' + (data.ok ? 'ok' : 'err');
+      if (data.error) lines.push('──────────────────────────────────', 'BŁĄD: ' + data.error);
+      resBox.textContent = lines.join('\n');
+      resBox.className   = 'smsplanet-result ' + (data.ok ? 'ok' : 'err');
     } catch (e) {
-      result.textContent = '─── BŁĄD SIECI ───\n' + e.message;
-      result.className   = 'smsplanet-result err';
+      console.error('[SMSPlanet UI] fetch error:', e);
+      resBox.textContent = '❌ BŁĄD SIECI\n──────────────────────────────────\n' + e.message;
+      resBox.className   = 'smsplanet-result err';
     } finally {
-      btn.disabled = false;
+      btn.textContent = 'Wyślij test';
+      btn.disabled    = false;
     }
+  });
+  document.getElementById('smsplanet-close').addEventListener('click', () => {
+    document.getElementById('smsplanet-overlay').style.display = 'none';
   });
 </script>
 
-<div class="smsplanet-bar">
-  <label>🧪 SMSPlanet test:</label>
-  <input class="smsplanet-phone" id="smsplanet-phone" type="tel" placeholder="600123456" />
-  <button class="smsplanet-btn" id="smsplanet-btn">Wyślij test</button>
-  <div class="smsplanet-result" id="smsplanet-result"></div>
-</div>
 
 </body>
 </html>
