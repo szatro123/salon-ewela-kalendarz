@@ -546,6 +546,34 @@
     }
     .btn-save:hover { background: #9e3f59; }
 
+    /* Autocomplete suggestions */
+    #name-field-group { position: relative; }
+    .suggestions-dropdown {
+      display: none;
+      position: absolute;
+      top: 100%; left: 0; right: 0;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      box-shadow: 0 8px 24px rgba(58,32,48,.13);
+      z-index: 95;
+      max-height: 210px;
+      overflow-y: auto;
+      margin-top: 3px;
+    }
+    .suggestions-dropdown.open { display: block; }
+    .suggestion-item {
+      padding: 10px 14px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--blush);
+      transition: background .1s;
+    }
+    .suggestion-item:last-child { border-bottom: none; }
+    .suggestion-item:hover,
+    .suggestion-item:active { background: var(--rose-bg); }
+    .suggestion-name { font-size: 0.9rem; font-weight: 600; color: var(--text-dark); }
+    .suggestion-detail { font-size: 0.78rem; color: var(--text-light); margin-top: 2px; }
+
     /* Delete confirm */
     .delete-confirm {
       display: none;
@@ -681,10 +709,11 @@
     </div>
     <form id="appt-form" novalidate>
       <div class="form-grid">
-        <div class="form-group">
+        <div class="form-group" id="name-field-group">
           <label for="f-name">Imię i nazwisko *</label>
           <input type="text" id="f-name" placeholder="np. Anna Kowalska" autocomplete="off" />
           <div class="error-msg" id="err-name"></div>
+          <div id="name-suggestions" class="suggestions-dropdown"></div>
         </div>
         <div class="form-group">
           <label for="f-phone">Telefon *</label>
@@ -1308,6 +1337,7 @@
   function closeModal() {
     document.getElementById('modal-backdrop').classList.remove('open');
     closeFormCalendar();
+    closeSuggestions();
     editingId = null;
   }
   function clearForm() {
@@ -1547,6 +1577,61 @@
   document.addEventListener('click', e => {
     if (!document.getElementById('rebook-popup').classList.contains('open')) return;
     if (!e.target.closest('#rebook-popup') && !e.target.closest('.rebook')) closeRebook();
+  });
+
+  // ── Autocomplete klientek ─────────────────────────────────────────────────
+  function getClientBook() {
+    const sorted = loadAll().slice().sort((a, b) =>
+      b.date.localeCompare(a.date) || b.time.localeCompare(a.time));
+    const seen = new Set();
+    const clients = [];
+    sorted.forEach(a => {
+      const key = a.clientName.trim().toLowerCase();
+      if (!seen.has(key)) { seen.add(key); clients.push(a); }
+    });
+    return clients;
+  }
+
+  function closeSuggestions() {
+    document.getElementById('name-suggestions').classList.remove('open');
+  }
+
+  document.getElementById('f-name').addEventListener('input', () => {
+    const q   = document.getElementById('f-name').value.trim();
+    const box = document.getElementById('name-suggestions');
+    if (q.length < 1) { closeSuggestions(); return; }
+    const matches = getClientBook().filter(c =>
+      c.clientName.toLowerCase().includes(q.toLowerCase()));
+    if (!matches.length) { closeSuggestions(); return; }
+    box.innerHTML = matches.slice(0, 8).map(c => `
+      <div class="suggestion-item"
+           data-name="${esc(c.clientName)}"
+           data-phone="${esc(c.phone)}"
+           data-service="${esc(c.service)}"
+           data-duration="${c.duration}"
+           data-notes="${esc(c.notes || '')}">
+        <div class="suggestion-name">${esc(c.clientName)}</div>
+        <div class="suggestion-detail">${esc(c.phone)} · ${esc(c.service)}</div>
+      </div>`).join('');
+    box.classList.add('open');
+  });
+
+  document.getElementById('name-suggestions').addEventListener('mousedown', e => {
+    const item = e.target.closest('.suggestion-item');
+    if (!item) return;
+    e.preventDefault();
+    document.getElementById('f-name').value     = item.dataset.name;
+    document.getElementById('f-phone').value    = item.dataset.phone;
+    document.getElementById('f-service').value  = item.dataset.service;
+    document.getElementById('f-duration').value = item.dataset.duration;
+    document.getElementById('f-notes').value    = item.dataset.notes;
+    document.getElementById('err-name').textContent  = '';
+    document.getElementById('err-phone').textContent = '';
+    closeSuggestions();
+  });
+
+  document.getElementById('f-name').addEventListener('blur', () => {
+    setTimeout(closeSuggestions, 150);
   });
 
   // ── Skróty klawiszowe ─────────────────────────────────────────────────────
