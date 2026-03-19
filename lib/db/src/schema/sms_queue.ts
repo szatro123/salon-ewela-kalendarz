@@ -5,6 +5,7 @@ export const smsQueueTable = pgTable("sms_queue", {
   appointmentId: text("appointment_id").notNull(),
   clientName: text("client_name").notNull(),
   phone: text("phone").notNull(),
+  service: text("service").notNull().default(""),
   date: text("date").notNull(),
   time: text("time").notNull(),
   duration: integer("duration").notNull(),

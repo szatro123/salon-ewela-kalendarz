@@ -1,47 +1,80 @@
-export async function sendSms(phone: string, message: string): Promise<void> {
-  const token = process.env.SMSAPI_TOKEN;
+// SMSPlanet API v2 — https://smsplanet.pl/doc/slate/index.html
+// POST https://api2.smsplanet.pl/sms
+// Content-Type: application/x-www-form-urlencoded
+// Authorization: Bearer TOKEN
+// Form fields: from, to, msg
+
+const SMSPLANET_URL = "https://api2.smsplanet.pl/sms";
+const SENDER        = "TEST";
+
+export function normalizePhone(raw: string): string {
+  let p = raw.replace(/[\s\-]/g, "").replace(/^\+/, "");
+  if (p.length === 9) p = "48" + p;
+  return p;
+}
+
+export async function sendSms(opts: {
+  appointmentId: string;
+  type: "confirmation" | "reminder";
+  rawPhone: string;
+  message: string;
+}): Promise<void> {
+  const { appointmentId, type, rawPhone, message } = opts;
+  const normalizedPhone = normalizePhone(rawPhone);
+
+  const token = process.env.SMSPLANET_TOKEN;
   if (!token) {
-    console.warn("[SMS] SMSAPI_TOKEN not set — skipping send to", phone);
+    console.warn(`[SMS] SMSPLANET_TOKEN not set — skipping ${type} for ${appointmentId}`);
     return;
   }
 
-  const params = new URLSearchParams({ to: phone, message, format: "json" });
+  const formBody = new URLSearchParams({
+    from: SENDER,
+    to:   normalizedPhone,
+    msg:  message,
+  });
 
-  console.log(`[SMS] → Sending to: ${phone}`);
+  console.log(`[SMS] ▶ ${type} | appt: ${appointmentId}`);
+  console.log(`[SMS]   raw phone     : ${rawPhone}`);
+  console.log(`[SMS]   normalized    : ${normalizedPhone}`);
+  console.log(`[SMS]   sender        : ${SENDER}`);
+  console.log(`[SMS]   message       : ${message}`);
+  console.log(`[SMS]   endpoint      : ${SMSPLANET_URL}`);
 
-  let res: Response;
-  let rawBody: string;
+  let httpStatus: number | null = null;
+  let responseBody              = "";
 
   try {
-    res = await fetch("https://api.smsapi.pl/sms.do", {
-      method: "POST",
+    const res = await fetch(SMSPLANET_URL, {
+      method:  "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/x-www-form-urlencoded",
+        "Content-Type":  "application/x-www-form-urlencoded",
+        "Authorization": `Bearer ${token}`,
       },
-      body: params.toString(),
+      body: formBody.toString(),
     });
 
-    rawBody = await res.text();
+    httpStatus   = res.status;
+    responseBody = await res.text();
+
+    const contentType = res.headers.get("content-type") ?? "";
+
+    console.log(`[SMS]   HTTP status   : ${httpStatus}`);
+    console.log(`[SMS]   response body : ${responseBody}`);
+
+    if (contentType.includes("text/html")) {
+      console.error(`[SMS] ✗ Got HTML — wrong endpoint or auth (${type}, appt: ${appointmentId})`);
+      return;
+    }
+
+    if (res.ok) {
+      console.log(`[SMS] ✓ ${type} sent to ${normalizedPhone} (appt: ${appointmentId})`);
+    } else {
+      console.error(`[SMS] ✗ API error for ${type} (appt: ${appointmentId}): ${responseBody}`);
+    }
   } catch (err) {
-    console.error(`[SMS] ✗ Network error sending to ${phone}:`, err);
-    return;
-  }
-
-  console.log(`[SMS] HTTP ${res.status} for ${phone}`);
-
-  try {
-    const data = JSON.parse(rawBody);
-    if (res.ok) {
-      console.log(`[SMS] ✓ Success for ${phone}:`, JSON.stringify(data));
-    } else {
-      console.error(`[SMS] ✗ Error for ${phone}:`, JSON.stringify(data));
-    }
-  } catch {
-    if (res.ok) {
-      console.log(`[SMS] ✓ Success for ${phone} (raw):`, rawBody);
-    } else {
-      console.error(`[SMS] ✗ Error for ${phone} (raw):`, rawBody);
-    }
+    const errText = err instanceof Error ? err.message : String(err);
+    console.error(`[SMS] ✗ Network error for ${type} (appt: ${appointmentId}): ${errText}`);
+    console.error(`[SMS]   HTTP status so far: ${httpStatus}`);
   }
 }
