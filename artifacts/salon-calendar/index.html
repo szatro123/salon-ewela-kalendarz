@@ -853,18 +853,10 @@
           <label for="f-service">Usługa *</label>
           <select id="f-service">
             <option value="">— Wybierz usługę —</option>
-            <option>Strzyżenie</option>
-            <option>Farbowanie</option>
-            <option>Pasemka</option>
-            <option>Balayage</option>
-            <option>Modelowanie</option>
-            <option>Przycinanie</option>
-            <option>Pielęgnacja włosów</option>
-            <option>Przedłużanie włosów</option>
-            <option>Manicure</option>
-            <option>Pedicure</option>
-            <option>Zabieg na twarz</option>
-            <option>Depilacja</option>
+            <option>Hybryda</option>
+            <option>Żele</option>
+            <option>Uzupełnienie</option>
+            <option>Stopy</option>
             <option>Inne</option>
           </select>
           <div class="error-msg" id="err-service"></div>
@@ -1453,6 +1445,16 @@
   document.getElementById('time-set-btn').addEventListener('click', closeTimePicker);
 
   document.getElementById('f-duration').addEventListener('change', renderTimeSlots);
+
+  const SERVICE_DURATIONS = { 'Hybryda': 90, 'Żele': 120, 'Uzupełnienie': 60, 'Stopy': 120, 'Inne': 60 };
+  document.getElementById('f-service').addEventListener('change', () => {
+    const svc = document.getElementById('f-service').value;
+    const dur = SERVICE_DURATIONS[svc];
+    if (dur) {
+      document.getElementById('f-duration').value = String(dur);
+      renderTimeSlots();
+    }
+  });
 
   document.addEventListener('click', e => {
     if (!document.getElementById('time-popup').classList.contains('open')) return;
