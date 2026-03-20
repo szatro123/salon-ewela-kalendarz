@@ -815,6 +815,76 @@
       .stat-value { font-size: 0.95rem; }
 
     }
+
+    /* ── Lista klientek ── */
+    .client-list-section {
+      margin: 0 16px 80px;
+    }
+    .client-list-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+      padding: 10px 14px;
+      background: #fff;
+      border: 1px solid #e8cfd6;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #7a3a48;
+      cursor: pointer;
+      text-align: left;
+    }
+    .client-list-toggle::after {
+      content: '›';
+      margin-left: auto;
+      font-size: 1.1rem;
+      transition: transform 0.2s;
+    }
+    .client-list-toggle.open::after {
+      transform: rotate(90deg);
+    }
+    .client-list-body {
+      display: none;
+      overflow-x: auto;
+      margin-top: 8px;
+      border: 1px solid #e8cfd6;
+      border-radius: 10px;
+      background: #fff;
+    }
+    .client-table {
+      width: 100%;
+      border-collapse: collapse;
+      white-space: nowrap;
+    }
+    .client-table th {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #7a3a48;
+      padding: 8px 10px;
+      border-bottom: 1px solid #f0dde2;
+      text-align: left;
+      background: #fdf5f7;
+    }
+    .client-table td {
+      font-size: 0.7rem;
+      color: #333;
+      padding: 7px 10px;
+      border-bottom: 1px solid #f5eef0;
+    }
+    .client-table tr:last-child td { border-bottom: none; }
+    .client-table td:nth-child(3),
+    .client-table td:nth-child(4),
+    .client-table td:nth-child(5),
+    .client-table th:nth-child(3),
+    .client-table th:nth-child(4),
+    .client-table th:nth-child(5) { text-align: center; }
+    .client-empty {
+      font-size: 0.78rem;
+      color: #999;
+      padding: 16px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -869,6 +939,24 @@
 </div>
 
 <main id="appointments-list"></main>
+
+<section class="client-list-section">
+  <button class="client-list-toggle" id="client-list-btn">Lista klientek</button>
+  <div class="client-list-body" id="client-list-body">
+    <table class="client-table">
+      <thead>
+        <tr>
+          <th>Imię i nazwisko</th>
+          <th>Nr tel</th>
+          <th>Odbyte</th>
+          <th>Odwołane</th>
+          <th>Zaplanowane</th>
+        </tr>
+      </thead>
+      <tbody id="client-tbody"></tbody>
+    </table>
+  </div>
+</section>
 
 <!-- Formularz wizyty -->
 <div class="modal-backdrop" id="modal-backdrop">
@@ -2125,6 +2213,48 @@
     };
     reader.readAsText(file);
     e.target.value = '';
+  });
+
+  // ── Lista klientek ────────────────────────────────────────────────────────
+  function buildClientList() {
+    const today = todayStr();
+    const all   = loadAll();
+    const map   = {};
+    for (const a of all) {
+      const key = (a.clientName || '').trim().toLowerCase() + '||' + (a.phone || '');
+      if (!map[key]) map[key] = { name: (a.clientName || '').trim(), phone: (a.phone || ''), done: 0, cancelled: 0, planned: 0 };
+      if (a.status === 'completed') {
+        map[key].done++;
+      } else if (a.status === 'cancelled' || a.status === 'no_show') {
+        map[key].cancelled++;
+      } else {
+        if (a.date >= today) map[key].planned++;
+        else                 map[key].done++;
+      }
+    }
+    const clients = Object.values(map).sort((a, b) => a.name.localeCompare(b.name, 'pl'));
+    const tbody   = document.getElementById('client-tbody');
+    if (!clients.length) {
+      tbody.innerHTML = `<tr><td colspan="5" class="client-empty">Brak klientek</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = clients.map(c =>
+      `<tr>
+        <td>${c.name}</td>
+        <td>${c.phone}</td>
+        <td>${c.done}</td>
+        <td>${c.cancelled}</td>
+        <td>${c.planned}</td>
+      </tr>`
+    ).join('');
+  }
+
+  document.getElementById('client-list-btn').addEventListener('click', () => {
+    const btn  = document.getElementById('client-list-btn');
+    const body = document.getElementById('client-list-body');
+    const open = btn.classList.toggle('open');
+    body.style.display = open ? 'block' : 'none';
+    if (open) buildClientList();
   });
 
   // ── Start ─────────────────────────────────────────────────────────────────
