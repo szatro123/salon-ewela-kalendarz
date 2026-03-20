@@ -5,7 +5,7 @@
 // Form fields: from, to, msg
 
 const SMSPLANET_URL = "https://api2.smsplanet.pl/sms";
-const SENDER        = "TEST";
+const SENDER        = "SalonEwela";
 
 export function normalizePhone(raw: string): string {
   // Strip spaces, dashes, dots, parentheses, leading + sign
