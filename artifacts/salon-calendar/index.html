@@ -818,7 +818,7 @@
 
     /* ── Lista klientek ── */
     .client-list-section {
-      margin: 20px 16px 80px;
+      margin-top: 12px;
     }
     .client-list-toggle {
       display: flex;
@@ -931,6 +931,23 @@
         <div class="leg-item"><div class="leg-dot c3"></div> 3 wizyty</div>
         <div class="leg-item"><div class="leg-dot c4"></div> 4+</div>
       </div>
+      <div class="client-list-section">
+        <button class="client-list-toggle" id="client-list-btn">Lista klientek</button>
+        <div class="client-list-body" id="client-list-body">
+          <table class="client-table">
+            <thead>
+              <tr>
+                <th>Imię i nazwisko</th>
+                <th>Nr tel</th>
+                <th>Odbyte</th>
+                <th>Odwołane</th>
+                <th>Zaplanowane</th>
+              </tr>
+            </thead>
+            <tbody id="client-tbody"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -939,24 +956,6 @@
 </div>
 
 <main id="appointments-list"></main>
-
-<section class="client-list-section">
-  <button class="client-list-toggle" id="client-list-btn">Lista klientek</button>
-  <div class="client-list-body" id="client-list-body">
-    <table class="client-table">
-      <thead>
-        <tr>
-          <th>Imię i nazwisko</th>
-          <th>Nr tel</th>
-          <th>Odbyte</th>
-          <th>Odwołane</th>
-          <th>Zaplanowane</th>
-        </tr>
-      </thead>
-      <tbody id="client-tbody"></tbody>
-    </table>
-  </div>
-</section>
 
 <!-- Formularz wizyty -->
 <div class="modal-backdrop" id="modal-backdrop">
@@ -1276,15 +1275,10 @@
     document.getElementById('cal-popup').classList.add('open');
     document.querySelector('.cal-popup-outer').classList.add('open');
     calOpen = true;
-    requestAnimationFrame(() => {
-      const popupH = document.querySelector('.cal-popup-outer').offsetHeight;
-      document.querySelector('.client-list-section').style.marginTop = (popupH + 28) + 'px';
-    });
   }
   function closeCalendar() {
     document.getElementById('cal-popup').classList.remove('open');
     document.querySelector('.cal-popup-outer').classList.remove('open');
-    document.querySelector('.client-list-section').style.marginTop = '20px';
     calOpen = false;
   }
   function toggleCalendar() {
