@@ -39,7 +39,7 @@ router.post("/", async (req: Request, res: Response) => {
 
   // ── Build form-encoded body (required by SMSPlanet — NOT JSON) ───────────────
   const formBody = new URLSearchParams({
-    from: "TEST",
+    from: "SalonEwela",
     to:   normalizedPhone,
     msg:  message,          // ← correct field name is "msg", not "message"
   });
