@@ -82,6 +82,20 @@
       transition: background .15s;
     }
     .search-btn:hover { background: rgba(181,83,106,.22); }
+    .backup-btn {
+      background: rgba(181,83,106,.10); color: var(--rose);
+      border: 1px solid rgba(181,83,106,.25); border-radius: var(--radius-sm);
+      padding: 0 10px; height: 36px; font-size: 0.75rem; font-weight: 600;
+      cursor: pointer; white-space: nowrap;
+      transition: background .15s;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .backup-btn:hover { background: rgba(181,83,106,.20); }
+    .backup-btn .btn-label { display: inline; }
+    @media (max-width: 480px) {
+      .backup-btn { padding: 0; width: 36px; height: 36px; font-size: 1rem; justify-content: center; }
+      .backup-btn .btn-label { display: none; }
+    }
 
     /* Search panel */
     .search-backdrop {
@@ -813,6 +827,9 @@
     </div>
     <div class="header-actions">
       <button class="search-btn" id="open-search" title="Szukaj klientki">🔍</button>
+      <button class="backup-btn" id="btn-save-backup">💾<span class="btn-label"> Zapisz</span></button>
+      <button class="backup-btn" id="btn-load-backup">📂<span class="btn-label"> Wczytaj</span></button>
+      <input type="file" id="backup-file-input" accept=".json" style="display:none">
       <button class="header-add-btn" id="open-add">➕ Dodaj</button>
     </div>
   </div>
@@ -2073,6 +2090,41 @@
       closeClientHistory();
       document.getElementById('delete-confirm').classList.remove('open');
     }
+  });
+
+  // ── Kopia zapasowa ────────────────────────────────────────────────────────
+  document.getElementById('btn-save-backup').addEventListener('click', () => {
+    const data = localStorage.getItem('appointments') || '[]';
+    const blob = new Blob([data], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'kalendarz-backup.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('btn-load-backup').addEventListener('click', () => {
+    document.getElementById('backup-file-input').click();
+  });
+
+  document.getElementById('backup-file-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target.result);
+        if (!Array.isArray(parsed)) throw new Error('Nieprawidłowy format');
+        localStorage.setItem('appointments', JSON.stringify(parsed));
+        render();
+        alert('Dane przywrócone');
+      } catch {
+        alert('Błąd: nieprawidłowy plik kopii zapasowej.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
   });
 
   // ── Start ─────────────────────────────────────────────────────────────────
