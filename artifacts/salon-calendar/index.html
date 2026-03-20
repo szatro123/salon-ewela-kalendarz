@@ -818,7 +818,7 @@
 
     /* ── Lista klientek ── */
     .client-list-section {
-      margin: 0 16px 80px;
+      margin: 20px 16px 80px;
     }
     .client-list-toggle {
       display: flex;
@@ -1275,11 +1275,14 @@
     buildCalendar();
     document.getElementById('cal-popup').classList.add('open');
     document.querySelector('.cal-popup-outer').classList.add('open');
+    document.querySelector('.client-list-section').style.display = 'none';
     calOpen = true;
   }
   function closeCalendar() {
     document.getElementById('cal-popup').classList.remove('open');
     document.querySelector('.cal-popup-outer').classList.remove('open');
+    document.querySelector('.client-list-section').style.display =
+      (currentDate === todayStr()) ? 'none' : 'block';
     calOpen = false;
   }
   function toggleCalendar() {
@@ -1428,6 +1431,8 @@
   // ── Wyświetlanie listy ────────────────────────────────────────────────────
   function render() {
     document.getElementById('date-label').textContent = formatDateLabel(currentDate);
+    document.querySelector('.client-list-section').style.display =
+      (currentDate === todayStr()) ? 'none' : 'block';
 
     const all = loadAll();
     const day = all
