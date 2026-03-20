@@ -12,6 +12,13 @@ function formatDatePl(dateStr: string): string {
   return d.toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" });
 }
 
+function formatDateShort(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${dd}.${mm}`;
+}
+
 export function buildConfirmationMsg(date: string, time: string, service: string): string {
   const dateLabel = formatDatePl(date);
   return (
@@ -20,9 +27,10 @@ export function buildConfirmationMsg(date: string, time: string, service: string
   );
 }
 
-export function buildReminderMsg(time: string, service: string): string {
+export function buildReminderMsg(date: string, time: string, service: string): string {
+  const dateShort = formatDateShort(date);
   return (
-    `Przypomnienie: jutro o godz. ${time} ma Pani wizytę w Salonie Piękności Ewelina. ` +
+    `Przypomnienie: jutro (${dateShort}) o ${time} ma Pani wizytę w Salonie Piękności Ewelina. ` +
     `Usługa: ${service}. Do zobaczenia.`
   );
 }
@@ -75,7 +83,7 @@ async function checkPending(): Promise<void> {
     const diffMs    = apptStart - now.getTime();
 
     if (diffMs > 0 && diffMs <= hours24Ms) {
-      const message = buildReminderMsg(row.time, row.service);
+      const message = buildReminderMsg(row.date, row.time, row.service);
       await sendSms({
         appointmentId: row.appointmentId,
         type:          "reminder",
