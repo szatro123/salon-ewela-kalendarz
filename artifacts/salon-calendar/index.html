@@ -285,17 +285,18 @@
 
     /* ── Custom calendar popup ── */
     .cal-popup-outer {
+      display: none;
       position: absolute;
       top: calc(100% + 8px);
       left: 0;
       right: 0;
       width: 100%;
-      display: flex;
       justify-content: center;
-      margin-left: 0;
-      padding-left: 0;
       pointer-events: none;
       z-index: 50;
+    }
+    .cal-popup-outer.open {
+      display: flex;
     }
     .cal-popup {
       display: none;
@@ -1165,10 +1166,12 @@
     calViewMonth = d.getMonth();
     buildCalendar();
     document.getElementById('cal-popup').classList.add('open');
+    document.querySelector('.cal-popup-outer').classList.add('open');
     calOpen = true;
   }
   function closeCalendar() {
     document.getElementById('cal-popup').classList.remove('open');
+    document.querySelector('.cal-popup-outer').classList.remove('open');
     calOpen = false;
   }
   function toggleCalendar() {
