@@ -1606,7 +1606,13 @@
 
     let valid = true;
     if (!name)                     { document.getElementById('err-name').textContent    = 'Pole wymagane'; valid = false; }
-    if (!phone)                    { document.getElementById('err-phone').textContent   = 'Pole wymagane'; valid = false; }
+    if (!phone) {
+      document.getElementById('err-phone').textContent = 'Pole wymagane'; valid = false;
+    } else {
+      const digits = phone.replace(/[\s\-\.\(\)]/g, '').replace(/^\+/, '').replace(/^0(\d{9})$/, '$1');
+      const ok = /^\d{9}$/.test(digits) || (/^\d{11}$/.test(digits) && digits.startsWith('48'));
+      if (!ok) { document.getElementById('err-phone').textContent = 'Podaj numer w formacie 600111222 lub +48600111222'; valid = false; }
+    }
     if (!service)                  { document.getElementById('err-service').textContent = 'Wybierz usługę'; valid = false; }
     if (!date)                     { document.getElementById('err-date').textContent    = 'Pole wymagane'; valid = false; }
     else if (isPast(date))         { document.getElementById('err-date').textContent    = 'Nie można wybrać daty z przeszłości.'; valid = false; }

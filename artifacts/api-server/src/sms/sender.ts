@@ -7,21 +7,19 @@
 const SMSPLANET_URL = "https://api2.smsplanet.pl/sms";
 const SENDER        = "TEST";
 
-function isValidPolishPhone(raw: string): boolean {
-  // Allow only an optional leading + followed by digits — no letters or other chars
-  if (!/^\+?\d+$/.test(raw)) return false;
-  const digits = raw.replace(/^\+/, "");
-  // 9 bare digits  →  local Polish number
-  if (digits.length === 9) return true;
-  // 11 digits starting with 48  →  +48XXXXXXXXX
-  if (digits.length === 11 && digits.startsWith("48")) return true;
-  return false;
-}
-
 export function normalizePhone(raw: string): string {
-  let p = raw.replace(/[\s\-]/g, "").replace(/^\+/, "");
+  // Strip spaces, dashes, dots, parentheses, leading + sign
+  let p = raw.replace(/[\s\-\.\(\)]/g, "").replace(/^\+/, "");
+  // Remove leading 0 (some Polish numbers entered as 0600111222)
+  if (p.startsWith("0") && p.length === 10) p = p.slice(1);
+  // Prepend 48 country code if 9 bare digits remain
   if (p.length === 9) p = "48" + p;
   return p;
+}
+
+function isValidNormalizedPhone(normalized: string): boolean {
+  // Must be exactly 11 digits starting with 48
+  return /^\d{11}$/.test(normalized) && normalized.startsWith("48");
 }
 
 export async function sendSms(opts: {
@@ -32,12 +30,12 @@ export async function sendSms(opts: {
 }): Promise<void> {
   const { appointmentId, type, rawPhone, message } = opts;
 
-  if (!isValidPolishPhone(rawPhone)) {
-    console.log(`[SMS] Invalid phone "${rawPhone}" — SMS skipped (${type}, appt: ${appointmentId})`);
+  const normalizedPhone = normalizePhone(rawPhone);
+
+  if (!isValidNormalizedPhone(normalizedPhone)) {
+    console.log(`[SMS] Invalid phone "${rawPhone}" (normalized: "${normalizedPhone}") — SMS skipped (${type}, appt: ${appointmentId})`);
     return;
   }
-
-  const normalizedPhone = normalizePhone(rawPhone);
 
   const token = process.env.SMSPLANET_TOKEN;
   if (!token) {
