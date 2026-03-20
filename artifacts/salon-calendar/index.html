@@ -1433,8 +1433,6 @@
   // ── Wyświetlanie listy ────────────────────────────────────────────────────
   function render() {
     document.getElementById('date-label').textContent = formatDateLabel(currentDate);
-    document.querySelector('.client-list-section').style.display =
-      (currentDate === todayStr()) ? 'none' : 'block';
 
     const all = loadAll();
     const day = all
