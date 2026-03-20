@@ -818,6 +818,7 @@
   </div>
 </header>
 
+<div id="dbg-right" style="text-align:center;padding:4px;font-size:0.8rem;color:#9e3f59;font-weight:600;">RIGHT CLICK COUNT: 0</div>
 <div class="date-nav">
   <button class="nav-btn" id="prev-day" title="Poprzedni dzień">&#8249;</button>
 
@@ -1387,8 +1388,19 @@
   document.getElementById('prev-day').addEventListener('click', () => {
     currentDate = offsetDate(currentDate, -1); render();
   });
+  let _rightCount = 0;
+  function _nextDay() {
+    _rightCount++;
+    document.getElementById('dbg-right').textContent = 'RIGHT CLICK COUNT: ' + _rightCount;
+    currentDate = offsetDate(currentDate, 1);
+    render();
+  }
+  document.getElementById('next-day').addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    _nextDay();
+  }, { passive: false });
   document.getElementById('next-day').addEventListener('click', () => {
-    currentDate = offsetDate(currentDate,  1); render();
+    _nextDay();
   });
   document.getElementById('go-today').addEventListener('click', () => {
     currentDate = todayStr(); render();
