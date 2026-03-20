@@ -165,6 +165,7 @@
     .nav-btn:hover { border-color: var(--rose-light); color: var(--rose); }
     .date-display {
       flex: 1;
+      min-width: 0;
       background: white;
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
@@ -179,6 +180,7 @@
       color: var(--text-dark);
       user-select: none;
       transition: border-color .15s;
+      overflow: hidden;
     }
     .date-display:hover { border-color: var(--rose-light); }
     .date-display svg { color: var(--rose); flex-shrink: 0; }
