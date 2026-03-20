@@ -276,28 +276,37 @@
     .time-set-btn:hover { background: #9e3f59; }
 
     /* ── Custom calendar popup ── */
-    .cal-popup {
-      display: none;
+    .cal-popup-outer {
       position: absolute;
       top: calc(100% + 8px);
-      left: 50%;
-      transform: translateX(-50%);
+      left: 0;
+      right: 0;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      margin-left: 0;
+      padding-left: 0;
+      pointer-events: none;
+      z-index: 50;
+    }
+    .cal-popup {
+      display: none;
       width: calc(100% - 32px);
       max-width: 380px;
+      margin-left: auto;
+      margin-right: auto;
       background: #fff;
       border: none;
       border-radius: 16px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.08);
       padding: 12px;
-      margin-top: 12px;
-      margin-bottom: 16px;
-      z-index: 50;
+      pointer-events: auto;
       animation: fadeDown .18s ease;
     }
     .cal-popup.open { display: block; }
     @keyframes fadeDown {
-      from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
-      to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
     .cal-header {
       display: flex;
@@ -811,19 +820,21 @@
   </div>
 
   <!-- Custom calendar popup -->
-  <div class="cal-popup" id="cal-popup">
-    <div class="cal-header">
-      <button class="cal-nav" id="cal-prev">&#8249;</button>
-      <span class="cal-month-label" id="cal-month-label"></span>
-      <button class="cal-nav" id="cal-next">&#8250;</button>
-    </div>
-    <div class="cal-grid" id="cal-grid"></div>
-    <div class="cal-legend">
-      <div class="leg-item"><div class="leg-dot c0"></div> Wolny</div>
-      <div class="leg-item"><div class="leg-dot c1"></div> 1 wizyta</div>
-      <div class="leg-item"><div class="leg-dot c2"></div> 2 wizyty</div>
-      <div class="leg-item"><div class="leg-dot c3"></div> 3 wizyty</div>
-      <div class="leg-item"><div class="leg-dot c4"></div> 4+</div>
+  <div class="cal-popup-outer">
+    <div class="cal-popup" id="cal-popup">
+      <div class="cal-header">
+        <button class="cal-nav" id="cal-prev">&#8249;</button>
+        <span class="cal-month-label" id="cal-month-label"></span>
+        <button class="cal-nav" id="cal-next">&#8250;</button>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="cal-legend">
+        <div class="leg-item"><div class="leg-dot c0"></div> Wolny</div>
+        <div class="leg-item"><div class="leg-dot c1"></div> 1 wizyta</div>
+        <div class="leg-item"><div class="leg-dot c2"></div> 2 wizyty</div>
+        <div class="leg-item"><div class="leg-dot c3"></div> 3 wizyty</div>
+        <div class="leg-item"><div class="leg-dot c4"></div> 4+</div>
+      </div>
     </div>
   </div>
 
