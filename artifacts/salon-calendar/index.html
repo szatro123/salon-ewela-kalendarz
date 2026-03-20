@@ -1275,14 +1275,16 @@
     buildCalendar();
     document.getElementById('cal-popup').classList.add('open');
     document.querySelector('.cal-popup-outer').classList.add('open');
-    document.querySelector('.client-list-section').style.display = 'none';
     calOpen = true;
+    requestAnimationFrame(() => {
+      const popupH = document.querySelector('.cal-popup-outer').offsetHeight;
+      document.querySelector('.client-list-section').style.marginTop = (popupH + 28) + 'px';
+    });
   }
   function closeCalendar() {
     document.getElementById('cal-popup').classList.remove('open');
     document.querySelector('.cal-popup-outer').classList.remove('open');
-    document.querySelector('.client-list-section').style.display =
-      (currentDate === todayStr()) ? 'none' : 'block';
+    document.querySelector('.client-list-section').style.marginTop = '20px';
     calOpen = false;
   }
   function toggleCalendar() {
