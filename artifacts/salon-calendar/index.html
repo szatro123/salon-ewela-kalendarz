@@ -138,6 +138,12 @@
     .cennik-save { flex: 1; background: var(--rose); color: #fff; border: none; border-radius: 10px; padding: 11px; font-size: .95rem; font-weight: 700; cursor: pointer; }
     .cennik-save:hover { background: #9e3f59; }
     .cennik-cancel { flex: 1; background: var(--blush); color: var(--rose); border: none; border-radius: 10px; padding: 11px; font-size: .95rem; font-weight: 600; cursor: pointer; }
+    /* Zarobki panel */
+    .zarobki-grid { display: flex; flex-direction: column; gap: 0; border: 1.5px solid var(--blush); border-radius: 12px; overflow: hidden; margin-bottom: 4px; }
+    .zarobki-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--blush); }
+    .zarobki-row:last-child { border-bottom: none; }
+    .zarobki-label { font-size: .95rem; color: var(--text-light); }
+    .zarobki-val { font-size: 1.1rem; font-weight: 700; color: var(--rose); }
 
     /* Search panel */
     .search-backdrop {
@@ -984,6 +990,7 @@
           <div class="menu-item" id="menu-save-backup">💾 Zapisz kopię</div>
           <div class="menu-item" id="menu-load-backup">📂 Wczytaj kopię</div>
           <div class="menu-item" id="menu-cennik">💲 Cennik</div>
+          <div class="menu-item" id="menu-zarobki">💵 Zarobki</div>
         </div>
       </div>
       <input type="file" id="backup-file-input" accept=".json" style="display:none">
@@ -1221,6 +1228,34 @@
     <div class="cennik-actions">
       <button class="cennik-save" id="cennik-save">Zapisz</button>
       <button class="cennik-cancel" id="cennik-cancel">Anuluj</button>
+    </div>
+  </div>
+</div>
+
+<!-- Zarobki -->
+<div class="cennik-backdrop" id="zarobki-backdrop">
+  <div class="cennik-box">
+    <h3>💵 Zarobki</h3>
+    <div class="zarobki-grid">
+      <div class="zarobki-row">
+        <span class="zarobki-label">Dzisiaj</span>
+        <span class="zarobki-val" id="earn-today">0 zł</span>
+      </div>
+      <div class="zarobki-row">
+        <span class="zarobki-label">Ten tydzień</span>
+        <span class="zarobki-val" id="earn-week">0 zł</span>
+      </div>
+      <div class="zarobki-row">
+        <span class="zarobki-label">Ten miesiąc</span>
+        <span class="zarobki-val" id="earn-month">0 zł</span>
+      </div>
+      <div class="zarobki-row">
+        <span class="zarobki-label">Ten rok</span>
+        <span class="zarobki-val" id="earn-year">0 zł</span>
+      </div>
+    </div>
+    <div class="cennik-actions">
+      <button class="cennik-save" id="zarobki-close">Zamknij</button>
     </div>
   </div>
 </div>
@@ -2515,6 +2550,48 @@
   document.getElementById('menu-cennik').addEventListener('click', () => {
     closeMenu();
     openCennik();
+  });
+
+  // ── Zarobki ───────────────────────────────────────────────────────────────
+  function openZarobki() {
+    const all   = loadAll().filter(a => a.status === 'completed');
+    const today = todayStr();
+    const now   = new Date(today + 'T00:00:00');
+    const year  = now.getFullYear();
+    const month = now.getMonth();
+    // Start of current ISO week (Monday)
+    const dow   = (now.getDay() + 6) % 7; // 0=Mon
+    const weekStart = new Date(now); weekStart.setDate(now.getDate() - dow);
+    const weekStartStr = isoFromYMD(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate());
+
+    const sum = (appts) => appts.reduce((t, a) => t + (Number(a.price) || 0), 0);
+
+    const todayEarn = sum(all.filter(a => a.date === today));
+    const weekEarn  = sum(all.filter(a => a.date >= weekStartStr && a.date <= today));
+    const monthEarn = sum(all.filter(a => {
+      const d = new Date(a.date + 'T00:00:00');
+      return d.getFullYear() === year && d.getMonth() === month;
+    }));
+    const yearEarn  = sum(all.filter(a => a.date.startsWith(String(year))));
+
+    const fmt = n => n + ' zł';
+    document.getElementById('earn-today').textContent = fmt(todayEarn);
+    document.getElementById('earn-week').textContent  = fmt(weekEarn);
+    document.getElementById('earn-month').textContent = fmt(monthEarn);
+    document.getElementById('earn-year').textContent  = fmt(yearEarn);
+
+    document.getElementById('zarobki-backdrop').classList.add('open');
+  }
+  function closeZarobki() {
+    document.getElementById('zarobki-backdrop').classList.remove('open');
+  }
+  document.getElementById('zarobki-close').addEventListener('click', closeZarobki);
+  document.getElementById('zarobki-backdrop').addEventListener('click', e => {
+    if (e.target === document.getElementById('zarobki-backdrop')) closeZarobki();
+  });
+  document.getElementById('menu-zarobki').addEventListener('click', () => {
+    closeMenu();
+    openZarobki();
   });
 
   document.getElementById('backup-file-input').addEventListener('change', (e) => {
