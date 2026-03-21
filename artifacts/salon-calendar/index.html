@@ -1830,7 +1830,7 @@
     e.preventDefault();
     clearErrors();
 
-    const name     = document.getElementById('f-name').value.trim();
+    const name     = toTitleCase(document.getElementById('f-name').value);
     const phone    = document.getElementById('f-phone').value.trim();
     const service  = document.getElementById('f-service').value;
     const date     = document.getElementById('f-date').value;
@@ -2108,8 +2108,15 @@
     if (formSelectedDate) setTimeout(() => openTimePicker(), 100);
   });
 
+  function toTitleCase(str) {
+    return str.replace(/\s+/g, ' ').trim()
+      .split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+  }
+
   document.getElementById('f-name').addEventListener('blur', () => {
     setTimeout(closeSuggestions, 150);
+    const el = document.getElementById('f-name');
+    if (el.value.trim()) el.value = toTitleCase(el.value);
   });
 
   // ── Wyszukiwarka klientek ─────────────────────────────────────────────────
