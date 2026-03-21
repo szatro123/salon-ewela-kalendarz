@@ -275,6 +275,7 @@
     .time-slot.ts-free { background: var(--day-1-bg); color: var(--day-1-fg); }
     .time-slot.ts-busy { background: var(--day-4-bg); color: var(--day-4-fg); }
     .time-slot.ts-selected { border-color: var(--rose); font-weight: 700; box-shadow: 0 2px 8px var(--shadow); }
+    .time-slot.ts-past { background: #f0f0f0; color: #bbb; cursor: not-allowed; pointer-events: none; transform: none; box-shadow: none; }
     .time-popup-msg {
       font-size: 0.8rem;
       color: var(--day-4-fg);
@@ -1539,10 +1540,15 @@
 
   function renderTimeSlots() {
     const occupied = getOccupiedSlots();
+    const isToday  = formSelectedDate === todayStr();
+    const now      = new Date();
+    const nowHHMM  = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
     document.getElementById('time-slot-grid').innerHTML = TIME_SLOTS.map(t => {
-      const isBusy = occupied.has(t);
+      const isPast = isToday && t < nowHHMM;
+      const isBusy = !isPast && occupied.has(t);
       const isSel  = t === selectedTimeValue;
-      return `<div class="time-slot ${isBusy ? 'ts-busy' : 'ts-free'}${isSel ? ' ts-selected' : ''}" data-time="${t}">${t}</div>`;
+      const cls    = isPast ? 'ts-past' : (isBusy ? 'ts-busy' : 'ts-free');
+      return `<div class="time-slot ${cls}${isSel && !isPast ? ' ts-selected' : ''}" data-time="${t}">${t}</div>`;
     }).join('');
     const msg = document.getElementById('time-popup-msg');
     msg.textContent = (selectedTimeValue && occupied.has(selectedTimeValue))
