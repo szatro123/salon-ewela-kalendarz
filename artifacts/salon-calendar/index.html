@@ -395,6 +395,9 @@
       cursor: not-allowed;
       pointer-events: none;
     }
+    /* Past dates in main month calendar — faded, colours preserved */
+    .cal-day.is-cal-past { opacity: .38; }
+    .cal-day.is-cal-past.is-selected { opacity: 1; }
     /* Today ring */
     .cal-day.is-today { border-color: var(--rose-light); }
     /* Original rescheduled date — dark dashed ring */
@@ -1292,6 +1295,7 @@
       const el    = document.createElement('div');
 
       let cls = 'cal-day ' + dayColorClass(count);
+      if (iso < today)         cls += ' is-cal-past';
       if (iso === today)       cls += ' is-today';
       if (iso === currentDate) cls += ' is-selected';
 
