@@ -397,6 +397,17 @@
     }
     /* Today ring */
     .cal-day.is-today { border-color: var(--rose-light); }
+    /* Original rescheduled date — dark dashed ring */
+    .cal-day.is-original {
+      outline: 2px dashed #5a4a6a;
+      outline-offset: -2px;
+    }
+    /* Both today and original at the same time */
+    .cal-day.is-today.is-original {
+      border-color: var(--rose-light);
+      outline: 2px dashed #5a4a6a;
+      outline-offset: 2px;
+    }
     /* Selected — keep load color, add rose ring */
     .cal-day.is-selected {
       border-color: var(--rose);
@@ -1347,9 +1358,10 @@
 
       const past = isPast(iso);
       let cls = 'cal-day ' + dayColorClass(count);
-      if (past)                     cls += ' past';
-      if (iso === today)            cls += ' is-today';
-      if (iso === formSelectedDate) cls += ' is-selected';
+      if (past)                              cls += ' past';
+      if (iso === today)                     cls += ' is-today';
+      if (iso === formSelectedDate)          cls += ' is-selected';
+      if (iso === rebookOriginalDate)        cls += ' is-original';
 
       el.className   = cls;
       el.textContent = day;
@@ -1670,6 +1682,7 @@
     closeFormCalendar();
     closeSuggestions();
     editingId = null;
+    rebookOriginalDate = null;
   }
   function clearForm() {
     document.getElementById('appt-form').reset();
@@ -1809,6 +1822,7 @@
     const all3 = loadAll(); const idx3 = all3.findIndex(x => x.id === deletingId);
     if (idx3 !== -1) { all3[idx3].status = 'cancelled'; saveAll(all3); }
     toast('Wizyta anulowana');
+    rebookOriginalDate = a ? a.date : null;
     deletingId = null;
     document.getElementById('delete-confirm').classList.remove('open');
     render();
@@ -1840,7 +1854,8 @@
   }
 
   // ── Rebook (Umów ponownie) ────────────────────────────────────────────────
-  let rebookApptId = null;
+  let rebookApptId      = null;
+  let rebookOriginalDate = null;
 
   function addWeeks(dateStr, weeks) {
     const d = new Date(dateStr + 'T00:00:00');
@@ -1918,6 +1933,7 @@
   document.getElementById('rebook-custom').addEventListener('click', () => {
     const a = loadAll().find(x => x.id === rebookApptId);
     if (!a) return;
+    rebookOriginalDate = a.date;
     closeRebook();
     editingId = null;
     document.getElementById('modal-title').textContent = 'Nowa wizyta';
@@ -2181,6 +2197,7 @@
       cancelSms(id);
       const allR = loadAll(); const idxR = allR.findIndex(x => x.id === id);
       if (idxR !== -1) { allR[idxR].status = 'cancelled'; saveAll(allR); }
+      rebookOriginalDate = a.date;
       render();
       closeClientHistory();
       editingId = null;
