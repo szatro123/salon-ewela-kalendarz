@@ -1457,6 +1457,7 @@
         <div class="time-col">
           <div class="appt-time">${formatTime(a.time)}</div>
           <div class="appt-duration">${fmtDuration(Number(a.duration))}</div>
+          <div class="appt-duration">${(() => { const e = timeToMins(a.time) + Number(a.duration); return String(Math.floor(e/60)).padStart(2,'0') + ':' + String(e%60).padStart(2,'0'); })()}</div>
         </div>
         <div class="card-body">
           <div class="client-name" data-client="${esc(a.clientName)}">${esc(a.clientName)}</div>
