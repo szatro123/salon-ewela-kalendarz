@@ -590,6 +590,20 @@
     .badge-confirmed { background: #d3f9d8; color: #2f7d38; }
     .badge-completed { background: #f1f3f5; color: #495057; }
     .badge-cancelled { background: #fff0f3; color: #c92a2a; }
+    /* Slot picker for "Inne" */
+    .slot-unit-label { font-weight: 400; color: #999; font-size: .85em; }
+    .slot-tile-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+    .slot-tile {
+      width: 48px; height: 48px; border-radius: 10px;
+      border: 2px solid var(--blush); background: #fff;
+      font-size: 1.05rem; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text); transition: border-color .15s, background .15s, color .15s;
+      touch-action: manipulation;
+    }
+    .slot-tile:hover  { border-color: var(--rose-light); background: var(--rose-bg); }
+    .slot-tile.slot-selected { border-color: var(--rose); background: var(--rose-bg); color: var(--rose); }
+    #slot-end-time { margin-top: 6px; font-size: .85rem; color: #888; min-height: 1.1em; }
     .badge-no_show   { background: #fff3e0; color: #e65100; }
 
     /* Card action buttons */
@@ -1044,7 +1058,7 @@
           </div>
           <div class="error-msg" id="err-time"></div>
         </div>
-        <div class="form-group">
+        <div class="form-group" id="duration-group">
           <label for="f-duration">Czas trwania *</label>
           <select id="f-duration">
             <option value="30">30 min</option>
@@ -1055,6 +1069,11 @@
             <option value="150">2 godz. 30 min</option>
             <option value="180">3 godz.</option>
           </select>
+        </div>
+        <div class="form-group" id="slot-picker-group" style="display:none">
+          <label>Czas wizyty <span class="slot-unit-label">(30 min / slot)</span></label>
+          <div class="slot-tile-grid" id="slot-tile-grid"></div>
+          <div id="slot-end-time"></div>
         </div>
         <div class="form-group full">
           <label for="f-status">Status</label>
@@ -1615,6 +1634,10 @@
       lbl.textContent = 'Wybierz godzinę';
       lbl.classList.add('tb-placeholder');
     }
+    // Update slot picker visibility for "Inne"
+    if (typeof updateInneMode === 'function') updateInneMode();
+    // Refresh end-time label if a slot is already selected
+    if (typeof applySlotSelection === 'function' && selectedSlots > 0) applySlotSelection(selectedSlots);
   }
 
   function openTimePicker() {
@@ -1642,14 +1665,71 @@
 
   document.getElementById('f-duration').addEventListener('change', renderTimeSlots);
 
-  const SERVICE_DURATIONS = { 'Hybryda': 90, 'Żele': 120, 'Uzupełnienie': 60, 'Stopy': 120, 'Inne': 60 };
+  const SERVICE_DURATIONS = { 'Hybryda': 90, 'Żele': 120, 'Uzupełnienie': 60, 'Stopy': 120 };
+
+  // ── Slot picker for "Inne" ─────────────────────────────────────────────────
+  let selectedSlots = 0;
+
+  // Build tiles 1–12
+  document.getElementById('slot-tile-grid').innerHTML =
+    Array.from({length: 12}, (_, i) => i + 1)
+      .map(n => `<button type="button" class="slot-tile" data-slots="${n}">${n}</button>`)
+      .join('');
+
+  function isInneService() {
+    return document.getElementById('f-service').value === 'Inne';
+  }
+
+  function updateInneMode() {
+    const inne = isInneService();
+    const time = document.getElementById('f-time').value;
+    document.getElementById('duration-group').style.display    = inne ? 'none' : '';
+    document.getElementById('slot-picker-group').style.display = (inne && time) ? '' : 'none';
+  }
+
+  function applySlotSelection(slots) {
+    selectedSlots = slots;
+    document.querySelectorAll('.slot-tile').forEach(t =>
+      t.classList.toggle('slot-selected', Number(t.dataset.slots) === slots));
+    const duration = slots * 30;
+    document.getElementById('f-duration').value = String(duration);
+    renderTimeSlots();
+    const time = document.getElementById('f-time').value;
+    const endEl = document.getElementById('slot-end-time');
+    if (time && slots > 0) {
+      const end = timeToMins(time) + duration;
+      const endStr = String(Math.floor(end / 60)).padStart(2,'0') + ':' + String(end % 60).padStart(2,'0');
+      endEl.textContent = `Koniec: ${endStr} · ${fmtDuration(duration)}`;
+    } else {
+      endEl.textContent = '';
+    }
+  }
+
+  function resetSlotPicker() {
+    selectedSlots = 0;
+    document.querySelectorAll('.slot-tile').forEach(t => t.classList.remove('slot-selected'));
+    document.getElementById('slot-end-time').textContent = '';
+  }
+
+  document.getElementById('slot-tile-grid').addEventListener('click', e => {
+    const tile = e.target.closest('.slot-tile');
+    if (!tile) return;
+    applySlotSelection(Number(tile.dataset.slots));
+  });
+
   document.getElementById('f-service').addEventListener('change', () => {
     const svc = document.getElementById('f-service').value;
-    const dur = SERVICE_DURATIONS[svc];
-    if (dur) {
-      document.getElementById('f-duration').value = String(dur);
-      renderTimeSlots();
+    if (svc !== 'Inne') {
+      resetSlotPicker();
+      const dur = SERVICE_DURATIONS[svc];
+      if (dur) {
+        document.getElementById('f-duration').value = String(dur);
+        renderTimeSlots();
+      }
+    } else {
+      document.getElementById('f-duration').value = '60';
     }
+    updateInneMode();
   });
 
   document.addEventListener('click', e => {
@@ -1682,6 +1762,11 @@
     document.getElementById('f-duration').value = String(a.duration);
     document.getElementById('f-status').value   = a.status;
     document.getElementById('f-notes').value    = a.notes || '';
+    updateInneMode();
+    if (a.service === 'Inne') {
+      const slots = Math.round(Number(a.duration) / 30);
+      if (slots >= 1 && slots <= 12) applySlotSelection(slots);
+    }
     document.getElementById('modal-backdrop').classList.add('open');
     document.getElementById('f-name').focus();
   }
@@ -1699,6 +1784,8 @@
     setFormDate('');
     setTimeValue('');
     clearErrors();
+    resetSlotPicker();
+    updateInneMode();
   }
   function clearErrors() {
     ['name','phone','service','date','time','booking'].forEach(f => {
