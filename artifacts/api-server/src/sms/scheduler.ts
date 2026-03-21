@@ -20,19 +20,12 @@ function formatDateShort(dateStr: string): string {
 }
 
 export function buildConfirmationMsg(date: string, time: string, service: string): string {
-  const dateLabel = formatDatePl(date);
-  return (
-    `Dzień dobry. Salon Piękności Ewelina potwierdza wizytę dnia ${dateLabel} o godz. ${time}. ` +
-    `Usługa: ${service}. Do zobaczenia.`
-  );
+  const dateShort = formatDateShort(date);
+  return `Dzien dobry. Potwierdzamy wizyte: ${dateShort}, ${time}, ${service}. Salon Ewelina.`;
 }
 
-export function buildReminderMsg(date: string, time: string, service: string): string {
-  const dateShort = formatDateShort(date);
-  return (
-    `Przypomnienie: jutro (${dateShort}) o ${time} ma Pani wizytę w Salonie Piękności Ewelina. ` +
-    `Usługa: ${service}. Do zobaczenia.`
-  );
+export function buildReminderMsg(_date: string, time: string, _service: string): string {
+  return `Przypomnienie: jutro o ${time} wizyta. Salon Ewelina. Do zobaczenia.`;
 }
 
 // ── Scheduler ─────────────────────────────────────────────────────────────
