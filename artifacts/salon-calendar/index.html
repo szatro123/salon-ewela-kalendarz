@@ -2104,9 +2104,11 @@
     const all = loadAll()
       .filter(a => a.clientName.trim().toLowerCase() === clientName.trim().toLowerCase());
 
+    const isActive = a => !['cancelled','no_show'].includes(a.status);
+
     const past   = all.filter(apptIsPast)
                       .sort((a, b) => apptEndMs(b) - apptEndMs(a));   // newest last-visit first
-    const future = all.filter(apptIsFuture)
+    const future = all.filter(a => apptIsFuture(a) && isActive(a))
                       .sort((a, b) => apptStartMs(a) - apptStartMs(b)); // nearest next-visit first
 
     const allSorted = [...all].sort((a, b) => apptStartMs(a) - apptStartMs(b)); // ascending
