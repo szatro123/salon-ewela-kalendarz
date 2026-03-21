@@ -1465,9 +1465,21 @@
 
     const list = document.getElementById('appointments-list');
 
+    const today2 = todayStr();
+    const hasFutureAppt = new Set();
+    for (const x of all) {
+      if (x.status === 'scheduled' && x.date >= today2)
+        hasFutureAppt.add((x.clientName || '').trim().toLowerCase() + '||' + (x.phone || ''));
+    }
+
     const statusLabels = {
       scheduled: 'Zaplanowana', confirmed: 'Potwierdzona',
       completed: 'Zakończona',  cancelled: 'Anulowana',  no_show: 'Nieobecność'
+    };
+
+    const cancelledLabel = (a) => {
+      const key = (a.clientName || '').trim().toLowerCase() + '||' + (a.phone || '');
+      return hasFutureAppt.has(key) ? 'Anulowana \u2022 nowy termin' : 'Anulowana';
     };
 
     const cardHtml = (a, showActions) => `
@@ -1481,7 +1493,7 @@
           <div class="client-name" data-client="${esc(a.clientName)}">${esc(a.clientName)}</div>
           <div class="service-row">${esc(a.service)}</div>
           <div class="card-meta">
-            <span class="badge badge-${a.status}">${statusLabels[a.status] || a.status}</span>
+            <span class="badge badge-${a.status}">${(['cancelled','no_show'].includes(a.status) ? cancelledLabel(a) : statusLabels[a.status]) || a.status}</span>
             <span class="phone-tag">${esc(a.phone)}</span>
             ${a.notes ? `<span class="notes-tag" title="${esc(a.notes)}">📝 ${esc(a.notes)}</span>` : ''}
           </div>
@@ -2109,10 +2121,13 @@
     const fmtDate = iso => new Date(iso + 'T00:00:00')
       .toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
 
+    const clientHasFuture = all.some(x => x.status === 'scheduled' && apptIsFuture(x));
+
     function displayStatus(a) {
-      if (apptIsPast(a))   return 'Zakończona';
-      if (apptIsFuture(a)) return statusLabelsHist[a.status] || a.status;
-      return statusLabelsHist[a.status] || a.status; // in-progress: keep stored status
+      if (apptIsPast(a) && !['cancelled','no_show'].includes(a.status)) return 'Zakończona';
+      if (a.status === 'cancelled' || a.status === 'no_show')
+        return clientHasFuture ? 'Anulowana \u2022 nowy termin' : 'Anulowana';
+      return statusLabelsHist[a.status] || a.status;
     }
 
     const summaryEl = document.getElementById('history-summary');
