@@ -1465,13 +1465,6 @@
 
     const list = document.getElementById('appointments-list');
 
-    const today2 = todayStr();
-    const hasFutureAppt = new Set();
-    for (const x of all) {
-      if (x.status === 'scheduled' && x.date >= today2)
-        hasFutureAppt.add((x.clientName || '').trim().toLowerCase() + '||' + (x.phone || ''));
-    }
-
     const statusLabels = {
       scheduled: 'Zaplanowana', confirmed: 'Potwierdzona',
       completed: 'Zakończona',  cancelled: 'Anulowana',  no_show: 'Nieobecność'
@@ -1479,7 +1472,10 @@
 
     const cancelledLabel = (a) => {
       const key = (a.clientName || '').trim().toLowerCase() + '||' + (a.phone || '');
-      return hasFutureAppt.has(key) ? 'Anulowana \u2022 nowy termin' : 'Anulowana';
+      const cls = cancelClass(a, all, key);
+      if (cls === 'rebooked24h') return 'Anulowana \u2022 nowa wizyta w 24h';
+      if (cls === 'future')      return 'Anulowana \u2022 nowy termin';
+      return 'Anulowana';
     };
 
     const cardHtml = (a, showActions) => `
@@ -1791,6 +1787,7 @@
         id: 'a' + Date.now() + Math.random().toString(36).slice(2,6),
         clientName: name, phone, service, date, time, duration, notes, status,
         confirmationSent: false, reminderSent: false,
+        createdAt: Date.now(),
       };
       all.push(appt);
       saveAll(all);
@@ -1820,7 +1817,7 @@
     if (!deletingId) return;
     cancelSms(deletingId);
     const all2 = loadAll(); const idx2 = all2.findIndex(a => a.id === deletingId);
-    if (idx2 !== -1) { all2[idx2].status = 'cancelled'; saveAll(all2); }
+    if (idx2 !== -1) { all2[idx2].status = 'cancelled'; all2[idx2].cancelledAt = Date.now(); saveAll(all2); }
     toast('Wizyta anulowana');
     deletingId = null;
     document.getElementById('delete-confirm').classList.remove('open');
@@ -1832,7 +1829,7 @@
     const a = loadAll().find(x => x.id === deletingId);
     cancelSms(deletingId);
     const all3 = loadAll(); const idx3 = all3.findIndex(x => x.id === deletingId);
-    if (idx3 !== -1) { all3[idx3].status = 'cancelled'; saveAll(all3); }
+    if (idx3 !== -1) { all3[idx3].status = 'cancelled'; all3[idx3].cancelledAt = Date.now(); saveAll(all3); }
     toast('Wizyta anulowana');
     rebookOriginalDate = a ? a.date : null;
     deletingId = null;
@@ -1930,7 +1927,8 @@
       time:       a.time,
       duration:   a.duration,
       notes:      a.notes || '',
-      status:     'scheduled'
+      status:     'scheduled',
+      createdAt:  Date.now(),
     });
     saveAll(all);
     closeRebook();
@@ -2123,12 +2121,17 @@
     const fmtDate = iso => new Date(iso + 'T00:00:00')
       .toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
 
-    const clientHasFuture = all.some(x => x.status === 'scheduled' && apptIsFuture(x));
+    const allAppts = loadAll();
 
     function displayStatus(a) {
       if (apptIsPast(a) && !['cancelled','no_show'].includes(a.status)) return 'Zakończona';
-      if (a.status === 'cancelled' || a.status === 'no_show')
-        return clientHasFuture ? 'Anulowana \u2022 nowy termin' : 'Anulowana';
+      if (a.status === 'cancelled' || a.status === 'no_show') {
+        const key = (a.clientName || '').trim().toLowerCase() + '||' + (a.phone || '');
+        const cls = cancelClass(a, allAppts, key);
+        if (cls === 'rebooked24h') return 'Anulowana \u2022 nowa wizyta w 24h';
+        if (cls === 'future')      return 'Anulowana \u2022 nowy termin';
+        return 'Anulowana';
+      }
       return statusLabelsHist[a.status] || a.status;
     }
 
@@ -2198,7 +2201,7 @@
       const id = delBtn.dataset.id;
       cancelSms(id);
       const allD = loadAll(); const idxD = allD.findIndex(a => a.id === id);
-      if (idxD !== -1) { allD[idxD].status = 'cancelled'; saveAll(allD); }
+      if (idxD !== -1) { allD[idxD].status = 'cancelled'; allD[idxD].cancelledAt = Date.now(); saveAll(allD); }
       render();
       openClientHistory(document.getElementById('history-title').textContent);
       return;
@@ -2213,7 +2216,7 @@
       if (!a) return;
       cancelSms(id);
       const allR = loadAll(); const idxR = allR.findIndex(x => x.id === id);
-      if (idxR !== -1) { allR[idxR].status = 'cancelled'; saveAll(allR); }
+      if (idxR !== -1) { allR[idxR].status = 'cancelled'; allR[idxR].cancelledAt = Date.now(); saveAll(allR); }
       rebookOriginalDate = a.date;
       render();
       closeClientHistory();
@@ -2289,28 +2292,43 @@
     e.target.value = '';
   });
 
+  // ── Cancellation classification helper ───────────────────────────────────
+  // Returns 'rebooked24h' | 'future' | 'cancelled'
+  function cancelClass(cancelledAppt, allAppts, clientKey) {
+    const W24 = 24 * 3600 * 1000;
+    if (cancelledAppt.cancelledAt) {
+      const cutoff = cancelledAppt.cancelledAt + W24;
+      const rebooked = allAppts.some(x => {
+        const xk = (x.clientName || '').trim().toLowerCase() + '||' + (x.phone || '');
+        return xk === clientKey
+          && x.createdAt
+          && x.createdAt > cancelledAppt.cancelledAt
+          && x.createdAt <= cutoff
+          && !['cancelled','no_show'].includes(x.status);
+      });
+      if (rebooked) return 'rebooked24h';
+    }
+    const today = todayStr();
+    const hasFuture = allAppts.some(x => {
+      const xk = (x.clientName || '').trim().toLowerCase() + '||' + (x.phone || '');
+      return xk === clientKey && x.status === 'scheduled' && x.date >= today;
+    });
+    return hasFuture ? 'future' : 'cancelled';
+  }
+
   // ── Lista klientek ────────────────────────────────────────────────────────
   function buildClientList() {
     const today = todayStr();
     const all   = loadAll();
 
-    // Keys of clients who have at least one future scheduled appointment
-    const hasFuture = new Set();
-    for (const a of all) {
-      if (a.status === 'scheduled' && a.date >= today) {
-        hasFuture.add((a.clientName || '').trim().toLowerCase() + '||' + (a.phone || ''));
-      }
-    }
-
-    const map   = {};
+    const map = {};
     for (const a of all) {
       const key = (a.clientName || '').trim().toLowerCase() + '||' + (a.phone || '');
       if (!map[key]) map[key] = { name: (a.clientName || '').trim(), phone: (a.phone || ''), done: 0, cancelled: 0, planned: 0 };
       if (a.status === 'completed') {
         map[key].done++;
       } else if (a.status === 'cancelled' || a.status === 'no_show') {
-        // Only a real cancellation if client has no upcoming scheduled appointment
-        if (!hasFuture.has(key)) map[key].cancelled++;
+        if (cancelClass(a, all, key) === 'cancelled') map[key].cancelled++;
       } else {
         if (a.date >= today) map[key].planned++;
         else                 map[key].done++;
