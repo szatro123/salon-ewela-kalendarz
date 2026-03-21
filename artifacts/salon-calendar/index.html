@@ -1199,6 +1199,7 @@
   function countsByDate() {
     const map = {};
     for (const a of loadAll()) {
+      if (['cancelled','no_show'].includes(a.status)) continue;
       map[a.date] = (map[a.date] || 0) + 1;
     }
     return map;
