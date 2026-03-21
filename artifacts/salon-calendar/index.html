@@ -2259,6 +2259,15 @@
   function buildClientList() {
     const today = todayStr();
     const all   = loadAll();
+
+    // Keys of clients who have at least one future scheduled appointment
+    const hasFuture = new Set();
+    for (const a of all) {
+      if (a.status === 'scheduled' && a.date >= today) {
+        hasFuture.add((a.clientName || '').trim().toLowerCase() + '||' + (a.phone || ''));
+      }
+    }
+
     const map   = {};
     for (const a of all) {
       const key = (a.clientName || '').trim().toLowerCase() + '||' + (a.phone || '');
@@ -2266,7 +2275,8 @@
       if (a.status === 'completed') {
         map[key].done++;
       } else if (a.status === 'cancelled' || a.status === 'no_show') {
-        map[key].cancelled++;
+        // Only a real cancellation if client has no upcoming scheduled appointment
+        if (!hasFuture.has(key)) map[key].cancelled++;
       } else {
         if (a.date >= today) map[key].planned++;
         else                 map[key].done++;
