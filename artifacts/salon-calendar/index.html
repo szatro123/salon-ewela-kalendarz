@@ -774,6 +774,16 @@
       transition: background .15s, box-shadow .15s;
     }
     .btn-delete-rebook:hover { background: #9e3f59; box-shadow: 0 4px 14px rgba(181,83,106,.40); }
+    .cancelled-section { margin: 12px 16px 0; }
+    .cancelled-toggle {
+      width: 100%; text-align: left; background: none; border: 1px solid #e0d0d4;
+      border-radius: 8px; padding: 7px 12px; font-size: 0.78rem; color: #999;
+      cursor: pointer; display: flex; align-items: center; gap: 6px;
+    }
+    .cancelled-toggle::after { content: '›'; margin-left: auto; transition: transform .2s; }
+    .cancelled-toggle.open::after { transform: rotate(90deg); }
+    .cancelled-body { margin-top: 6px; }
+    .appointment-card.is-cancelled { opacity: 0.55; }
 
     /* Danger action — soft red fill, clearly destructive */
     .btn-delete {
@@ -1088,11 +1098,11 @@
 <!-- Potwierdzenie usunięcia -->
 <div class="delete-confirm" id="delete-confirm">
   <div class="delete-box">
-    <h3>Usunąć wizytę?</h3>
+    <h3>Anulować wizytę?</h3>
     <p id="delete-confirm-text">Ta operacja jest nieodwracalna.</p>
     <div class="delete-actions">
-      <button class="btn-delete-rebook" id="delete-rebook">🔁 Usuń i umów nowy termin</button>
-      <button class="btn-delete" id="delete-ok">🗑 Usuń</button>
+      <button class="btn-delete-rebook" id="delete-rebook">🔁 Anuluj i umów nowy termin</button>
+      <button class="btn-delete" id="delete-ok">✕ Anuluj wizytę</button>
       <button class="btn-cancel" id="delete-cancel">Zachowaj</button>
     </div>
   </div>
@@ -1435,27 +1445,21 @@
       .filter(a => a.date === currentDate)
       .sort((a, b) => a.time.localeCompare(b.time));
 
+    const active    = day.filter(a => !['cancelled','no_show'].includes(a.status));
+    const cancelled = day.filter(a =>  ['cancelled','no_show'].includes(a.status));
+
     const cntEl = document.getElementById('stat-count');
-    if (cntEl) cntEl.textContent = day.length;
+    if (cntEl) cntEl.textContent = active.length;
 
     const list = document.getElementById('appointments-list');
-    if (day.length === 0) {
-      list.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-icon">🌸</div>
-          <h3>Brak wizyt na ten dzień</h3>
-          <p>Kliknij <strong>Nowa wizyta</strong>, aby dodać pierwszą wizytę.</p>
-        </div>`;
-      return;
-    }
 
     const statusLabels = {
       scheduled: 'Zaplanowana', confirmed: 'Potwierdzona',
       completed: 'Zakończona',  cancelled: 'Anulowana',  no_show: 'Nieobecność'
     };
 
-    list.innerHTML = day.map(a => `
-      <div class="appointment-card" data-id="${a.id}">
+    const cardHtml = (a, showActions) => `
+      <div class="appointment-card${['cancelled','no_show'].includes(a.status) ? ' is-cancelled' : ''}" data-id="${a.id}">
         <div class="time-col">
           <div class="appt-time">${formatTime(a.time)}</div>
           <div class="appt-duration">${fmtDuration(Number(a.duration))}</div>
@@ -1470,12 +1474,32 @@
             ${a.notes ? `<span class="notes-tag" title="${esc(a.notes)}">📝 ${esc(a.notes)}</span>` : ''}
           </div>
         </div>
-        <div class="card-actions">
+        ${showActions ? `<div class="card-actions">
           <button class="icon-btn edit"   data-id="${a.id}" title="Edytuj">✏️</button>
           <button class="icon-btn rebook" data-id="${a.id}" title="Umów ponownie">🔁</button>
-          <button class="icon-btn delete" data-id="${a.id}" title="Usuń">🗑️</button>
-        </div>
-      </div>`).join('');
+          <button class="icon-btn delete" data-id="${a.id}" title="Anuluj">✕</button>
+        </div>` : ''}
+      </div>`;
+
+    if (active.length === 0 && cancelled.length === 0) {
+      list.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">🌸</div>
+          <h3>Brak wizyt na ten dzień</h3>
+          <p>Kliknij <strong>Nowa wizyta</strong>, aby dodać pierwszą wizytę.</p>
+        </div>`;
+    } else {
+      let html = active.length === 0
+        ? `<div class="empty-state"><div class="empty-icon">🌸</div><h3>Brak aktywnych wizyt</h3></div>`
+        : active.map(a => cardHtml(a, true)).join('');
+      if (cancelled.length > 0) {
+        html += `<div class="cancelled-section">
+          <button class="cancelled-toggle">Anulowane (${cancelled.length})</button>
+          <div class="cancelled-body" style="display:none">${cancelled.map(a => cardHtml(a, false)).join('')}</div>
+        </div>`;
+      }
+      list.innerHTML = html;
+    }
 
     list.querySelectorAll('.edit').forEach(btn =>
       btn.addEventListener('click', e => { e.stopPropagation(); openEdit(btn.dataset.id); }));
@@ -1485,6 +1509,11 @@
       btn.addEventListener('click', e => { e.stopPropagation(); openDelete(btn.dataset.id); }));
     list.querySelectorAll('.client-name').forEach(el =>
       el.addEventListener('click', e => { e.stopPropagation(); openClientHistory(el.dataset.client); }));
+    list.querySelectorAll('.cancelled-toggle').forEach(btn =>
+      btn.addEventListener('click', () => {
+        btn.classList.toggle('open');
+        btn.nextElementSibling.style.display = btn.classList.contains('open') ? 'block' : 'none';
+      }));
   }
 
   function esc(s) {
@@ -1755,7 +1784,7 @@
     if (!a) return;
     deletingId = id;
     document.getElementById('delete-confirm-text').textContent =
-      `Usunąć wizytę klientki ${a.clientName} (${a.service}) o godz. ${formatTime(a.time)}?`;
+      `Wizyta klientki ${a.clientName} (${a.service}) o godz. ${formatTime(a.time)} zostanie oznaczona jako anulowana.`;
     document.getElementById('delete-confirm').classList.add('open');
   }
   document.getElementById('delete-cancel').addEventListener('click', () => {
@@ -1765,8 +1794,9 @@
   document.getElementById('delete-ok').addEventListener('click', () => {
     if (!deletingId) return;
     cancelSms(deletingId);
-    saveAll(loadAll().filter(a => a.id !== deletingId));
-    toast('Wizyta usunięta');
+    const all2 = loadAll(); const idx2 = all2.findIndex(a => a.id === deletingId);
+    if (idx2 !== -1) { all2[idx2].status = 'cancelled'; saveAll(all2); }
+    toast('Wizyta anulowana');
     deletingId = null;
     document.getElementById('delete-confirm').classList.remove('open');
     render();
@@ -1776,8 +1806,9 @@
     if (!deletingId) return;
     const a = loadAll().find(x => x.id === deletingId);
     cancelSms(deletingId);
-    saveAll(loadAll().filter(x => x.id !== deletingId));
-    toast('Wizyta usunięta');
+    const all3 = loadAll(); const idx3 = all3.findIndex(x => x.id === deletingId);
+    if (idx3 !== -1) { all3[idx3].status = 'cancelled'; saveAll(all3); }
+    toast('Wizyta anulowana');
     deletingId = null;
     document.getElementById('delete-confirm').classList.remove('open');
     render();
@@ -2103,8 +2134,8 @@
           return `<div class="history-item future" data-id="${esc(a.id)}">
             <div class="hi-main">${content}<span class="hi-chevron">›</span></div>
             <div class="hi-actions">
-              <button class="btn-hi-action btn-hi-delete" data-id="${esc(a.id)}">Usuń</button>
-              <button class="btn-hi-action btn-hi-rebook-new" data-id="${esc(a.id)}">Usuń i umów nowy termin</button>
+              <button class="btn-hi-action btn-hi-delete" data-id="${esc(a.id)}">Anuluj</button>
+              <button class="btn-hi-action btn-hi-rebook-new" data-id="${esc(a.id)}">Anuluj i umów nowy termin</button>
             </div>
           </div>`;
         }
@@ -2127,19 +2158,20 @@
   });
 
   document.getElementById('history-list').addEventListener('click', e => {
-    // ── "Usuń" ────────────────────────────────────────────────────────────────
+    // ── "Anuluj" ──────────────────────────────────────────────────────────────
     const delBtn = e.target.closest('.btn-hi-delete');
     if (delBtn) {
       e.stopPropagation();
       const id = delBtn.dataset.id;
       cancelSms(id);
-      saveAll(loadAll().filter(a => a.id !== id));
+      const allD = loadAll(); const idxD = allD.findIndex(a => a.id === id);
+      if (idxD !== -1) { allD[idxD].status = 'cancelled'; saveAll(allD); }
       render();
       openClientHistory(document.getElementById('history-title').textContent);
       return;
     }
 
-    // ── "Usuń i umów nowy termin" ─────────────────────────────────────────────
+    // ── "Anuluj i umów nowy termin" ───────────────────────────────────────────
     const rebookBtn = e.target.closest('.btn-hi-rebook-new');
     if (rebookBtn) {
       e.stopPropagation();
@@ -2147,7 +2179,8 @@
       const a  = loadAll().find(x => x.id === id);
       if (!a) return;
       cancelSms(id);
-      saveAll(loadAll().filter(x => x.id !== id));
+      const allR = loadAll(); const idxR = allR.findIndex(x => x.id === id);
+      if (idxR !== -1) { allR[idxR].status = 'cancelled'; saveAll(allR); }
       render();
       closeClientHistory();
       editingId = null;
